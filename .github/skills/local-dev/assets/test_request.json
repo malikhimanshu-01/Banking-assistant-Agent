@@ -1,0 +1,15 @@
+{
+  "type": "threads.create",
+  "params": {
+    "input": {
+      "content": [
+        {
+          "type": "input_text",
+          "text": "how much do I have in my account?"
+        }
+      ],
+      "attachments": [],
+      "inference_options": {}
+    }
+  }
+}

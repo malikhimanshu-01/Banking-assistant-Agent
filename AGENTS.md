@@ -106,11 +106,51 @@ The core multi-agent orchestration service that exposes chat API endpoints.
 │   ├── 📄 logging-default.yaml          # Logging configuration
 │   │
 │   ├── 📁 agents/                       # Agent implementations
-│   │   ├── 📁 azure_chat/               # Azure OpenAI-based chat agents
+│   │   │                                # Two implementation versions available:
+│   │   ├── 📁 azure_chat/               # Azure OpenAI Chat-based agents
+│   │   │   │                            #   - Uses Azure OpenAI Chat client based agents
+│   │   │   │                            #   - Agents are optimized for ChatKit protocol implementations
+│   │   │   │                            #   - Includes simple/ subfolder with basic handoff agents
+│   │   │   │                            #   - Files: account_agent.py, payment_agent.py, 
+│   │   │   │                            #     transaction_agent.py, handoff_orchestrator.py
+│   │   └── 📁 foundry_v2/               # Azure AI Foundry v2 agents
+│   │       │                            #   - Uses Azure AI Foundry client (AzureAIClient) based agents
+│   │       │                            #   - Agents are optimized for ChatKit protocol implementations
+│   │       │                            #   - Files: account_agent.py, payment_agent.py,
+│   │       │                            #     transaction_agent.py, handoff_orchestrator.py
 │   │
 │   ├── 📁 common/                       # Shared utilities and base classes
+│   │
 │   ├── 📁 config/                       # Configuration management
-│   ├── 📁 helpers/                      # Helper functions and utilities
+│   │   ├── 📄 azure_credential.py       # Azure authentication credential provider
+│   │   │                                #   - Provides environment-aware credential selection
+│   │   │                                #   - Dev: Azure CLI credentials for local development
+│   │   │                                #   - Prod: Managed Identity for Azure-hosted environments
+│   │   │                                #   - Supports both sync and async credential instances
+│   │   ├── 📄 settings.py               # Application settings and environment variable management
+│   │   │                                #   - Pydantic-based settings with validation
+│   │   │                                #   - Loads from environment variables and .env files
+│   │   │                                #   - Azure service configurations (OpenAI, Storage, Document Intelligence)
+│   │   │                                #   - MCP server URLs for business API integration
+│   │   │                                #   - Profile-based configuration (dev/prod)
+│   │   ├── 📄 logging.py                # Logging configuration and OpenTelemetry setup
+│   │   │                                #   - Profile-based logging configuration (logging-{profile}.yaml)
+│   │   │                                #   - OpenTelemetry integration for distributed tracing
+│   │   │                                #   - Application Insights log export
+│   │   │                                #   - Structured logging with custom formatters
+│   │   ├── 📄 container_azure_chat.py   # DI container for Azure OpenAI Chat agents
+│   │   │                                #   - Dependency injection using dependency-injector
+│   │   │                                #   - Configures Azure OpenAI Chat client instances
+│   │   │                                #   - Wires agents with Azure services (Blob Storage, Document Intelligence)
+│   │   │                                #   - Supports both simple handoff and ChatKit protocol agents
+│   │   └── 📄 container_foundry_v2.py   # DI container for Azure AI Foundry v2 agents
+│   │       │                            #   - Alternative configuration for Azure AI Foundry deployments
+│   │       │                            #   - Uses AzureAIClient for agent framework integration
+│   │       │                            #   - Provides same agent wiring with Foundry-specific clients
+│   │
+│   ├── 📁 helpers/                      # Azure service proxies and utilities
+│   │   │                                #   - Simplifies interaction with Azure services (blob, cosmosdb, other Azure AI services)
+│   │
 │   ├── 📁 models/                       # Data models and schemas
 │   ├── 📁 routers/                      # FastAPI route handlers
 │   └── 📁 tools/                        # Agent tools and plugins
@@ -316,45 +356,5 @@ This command:
 
 - **Application Insights**: Request tracing, dependency tracking
 - **OpenTelemetry**: Distributed tracing across agents and services
-- **Custom Dashboards**: Pre-configured Bicep templates for monitoring
 
 ---
-
-## Development Workflows
-
-### Backend Development
-```bash
-cd app/backend
-uv sync                    # Install dependencies
-uv run uvicorn app.main_chatkit_server:app --reload
-```
-### Business API Development
-```bash
-cd app/business-api/python/account
-uv sync                    # Install dependencies
-uv run uvicorn main:app --reload
-
-cd app/business-api/python/payment
-uv sync                    # Install dependencies
-uv run uvicorn main:app --reload
-
-cd app/business-api/python/transaction
-uv sync                    # Install dependencies
-uv run uvicorn main:app --reload
-``` 
-
-### Frontend Development (Banking Web)
-```bash
-cd app/frontend/banking-web
-npm install               # Install dependencies
-npm run dev               # Start dev server
-```
-
-### Testing
-```bash
-cd app/backend
-uv run pytest             # Run tests
-```
-
----
-

@@ -2,9 +2,6 @@ version = 1
 revision = 3
 requires-python = ">=3.11"
 
-[options]
-prerelease-mode = "allow"
-
 [[package]]
 name = "agent-framework-azure-ai"
 version = "1.0.0b260212"

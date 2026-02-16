@@ -8,7 +8,7 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.storage.blob import BlobServiceClient
 from app.helpers.blob_proxy import BlobStorageProxy
-from app.helpers.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
+from app.tools.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
 from app.config.azure_credential import get_azure_credential, get_async_azure_credential
 from app.config.settings import settings
 

@@ -1,6 +1,6 @@
 from agent_framework.azure import AzureOpenAIChatClient
 from agent_framework import Agent, MCPStreamableHTTPTool
-from app.helpers.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
+from app.tools.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
 
 from datetime import datetime
 
