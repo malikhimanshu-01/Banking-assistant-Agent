@@ -42,20 +42,22 @@ class TransactionHistoryAgent :
 
       logger.info("Initializing Account MCP, Transaction MCP server tools for TransactionHistoryAgent ")
       
-      async with ( 
-        MCPStreamableHTTPTool(
+      account_mcp_server = MCPStreamableHTTPTool(
           name="Account MCP server client",
           url=self.account_mcp_server_url
-       ) as account_mcp_server,
-        MCPStreamableHTTPTool(
+       )
+      
+      transaction_mcp_server = MCPStreamableHTTPTool(
           name="Transaction MCP server client",
           url=self.transaction_mcp_server_url
-     ) as transaction_mcp_server,
-      ):
+     )  
       
-        return Agent(
-            client=self.azure_chat_client,
-            instructions=full_instruction,
-            name=TransactionHistoryAgent.name,
-            tools=[account_mcp_server, transaction_mcp_server],
-        )
+      await account_mcp_server.connect()
+      await transaction_mcp_server.connect()
+      
+      return Agent(
+          client=self.azure_chat_client,
+          instructions=full_instruction,
+          name=TransactionHistoryAgent.name,
+          tools=[account_mcp_server, transaction_mcp_server],
+      )

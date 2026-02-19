@@ -61,29 +61,31 @@ class PaymentAgent :
             
       logger.info("Initializing Account MCP, Transaction MCP, Payment MCP server tools for PaymentAgent") 
       
-      async with (
-        MCPStreamableHTTPTool(
-          name="Account MCP server client",
-          url=self.account_mcp_server_url
-        ) as account_mcp_server, 
-        MCPStreamableHTTPTool(
-          name="Transaction MCP server client",
-          url=self.transaction_mcp_server_url
-        ) as transaction_mcp_server, 
-         MCPStreamableHTTPTool(
-          name="Payment MCP server client",
-          url=self.payment_mcp_server_url,
-          approval_mode = { "always_require_approval": ["processPayment"] }
-        ) as payment_mcp_server,
-      ):
+      account_mcp_server = MCPStreamableHTTPTool(
+        name="Account MCP server client",
+        url=self.account_mcp_server_url
+      )
+      transaction_mcp_server = MCPStreamableHTTPTool(
+        name="Transaction MCP server client",
+        url=self.transaction_mcp_server_url
+      )
+      payment_mcp_server = MCPStreamableHTTPTool(
+        name="Payment MCP server client",
+        url=self.payment_mcp_server_url,
+        approval_mode = { "always_require_approval": ["processPayment"] }
+      )
+
+      await account_mcp_server.connect()
+      await transaction_mcp_server.connect()
+      await payment_mcp_server.connect()
       
-          return Agent(
-          client=self.azure_chat_client,
-          instructions=full_instruction,
-          name=PaymentAgent.name,
-          tools=[account_mcp_server,
-                  transaction_mcp_server, 
-                  payment_mcp_server,
-                self.document_scanner_helper.scan_invoice])
+      return Agent(
+      client=self.azure_chat_client,
+      instructions=full_instruction,
+      name=PaymentAgent.name,
+      tools=[account_mcp_server,
+              transaction_mcp_server, 
+              payment_mcp_server,
+            self.document_scanner_helper.scan_invoice])
             
         

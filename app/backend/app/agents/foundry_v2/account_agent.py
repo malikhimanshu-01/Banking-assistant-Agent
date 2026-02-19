@@ -38,17 +38,16 @@ class AccountAgent :
       full_instruction = AccountAgent.instructions.format(user_mail=user_mail)
 
       logger.info("Initializing Account MCP server tools for AccountAgent ")
-      async with ( 
-         MCPStreamableHTTPTool(
+      account_mcp_server = MCPStreamableHTTPTool(
                 name="Account MCP server client",
-                url=self.account_mcp_server_url) as account_mcp_server,
-      ):
-        agent = Agent(
+                url=self.account_mcp_server_url)
+      await account_mcp_server.connect()
+      agent = Agent(
                 client=self.azure_ai_client,
                 instructions=full_instruction,
                 name=AccountAgent.name,
                 tools=[account_mcp_server, handoff_to_triage_agent]
             )
-        agent.default_options["tools"] = [account_mcp_server, handoff_to_triage_agent]
-        return agent
+      agent.default_options["tools"] = [account_mcp_server, handoff_to_triage_agent]
+      return agent
     

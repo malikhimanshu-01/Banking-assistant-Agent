@@ -58,7 +58,7 @@
     }
     ,
     "agentsType": {
-      "value": "foundry_v2"
+      "value": "azure_chat"
     }
     ,
     "backendAppExists": {

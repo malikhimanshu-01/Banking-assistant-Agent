@@ -35,16 +35,15 @@ class AccountAgent :
       #        approval_mode = { "always_require_approval": ["getAccountsByUserName"] })
       
       logger.info("Initializing Account MCP server tools for AccountAgent ")
-      async with ( 
-         MCPStreamableHTTPTool(
+      account_mcp_server = MCPStreamableHTTPTool(
                 name="Account MCP server client",
-                url=self.account_mcp_server_url) as account_mcp_server,
-      ):
+                url=self.account_mcp_server_url)
       
-        return Agent(
+      await account_mcp_server.connect()
+      return Agent(
                 client=self.azure_chat_client,
                 instructions=full_instruction,
                 name=AccountAgent.name,
                 tools=[account_mcp_server]
             )
-    
+        
