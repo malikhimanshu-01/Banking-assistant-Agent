@@ -67,10 +67,8 @@ class BankingAssistantChatKitServer(ChatKitServer[dict[str, Any]]):
     This server integrates Agent Framework agents with ChatKit's server protocol,
     handling message conversion, agent execution, and response streaming.
     """
-    
-    # Use in-memory store for simplicity; replace with persistent store as needed
-    store = MemoryStore()
-
+ 
+    # Use a SQLite-based store on disk for thread and attachment metadata.
     metadata_store = SQLiteStore()
  
    

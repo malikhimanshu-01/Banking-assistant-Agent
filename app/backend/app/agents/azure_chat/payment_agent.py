@@ -1,8 +1,7 @@
 from agent_framework.azure import AzureOpenAIChatClient
 from agent_framework import Agent, MCPStreamableHTTPTool
 from app.tools.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
-
-from datetime import datetime
+from app.common.user_profile_provider import UserProfileProvider
 
 import logging
 
@@ -55,10 +54,6 @@ class PaymentAgent :
     
       logger.info("Building request scoped Payment agent run ")
       
-      user_mail="bob.user@contoso.com"
-      current_date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      full_instruction = PaymentAgent.instructions.format(user_mail=user_mail, current_date_time=current_date_time)
-            
       logger.info("Initializing Account MCP, Transaction MCP, Payment MCP server tools for PaymentAgent") 
       
       account_mcp_server = MCPStreamableHTTPTool(
@@ -78,10 +73,11 @@ class PaymentAgent :
       await account_mcp_server.connect()
       await transaction_mcp_server.connect()
       await payment_mcp_server.connect()
-      
+      full_instruction = PaymentAgent.instructions.format(user_mail=UserProfileProvider._get_logged_user_email(), 
+                                                          current_date_time=UserProfileProvider._get_current_timestamp())
       return Agent(
       client=self.azure_chat_client,
-      instructions=full_instruction,
+      instructions=full_instruction.strip(),
       name=PaymentAgent.name,
       tools=[account_mcp_server,
               transaction_mcp_server, 

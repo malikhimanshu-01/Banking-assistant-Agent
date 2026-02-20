@@ -24,7 +24,7 @@ from .sqllite_store import SQLiteStore
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-data_store = SQLiteStore()
+metadata_store = SQLiteStore()
 DEFAULT_USER_ID = "demo_user"
 
 
@@ -50,13 +50,13 @@ async def upload_file(attachment_id: str,
         logger.info(f"Saved {len(contents)} bytes for {file.filename} as attachment {attachment_id} in blob storage")
 
         # Load the attachment metadata from the data store
-        attachment = await data_store.load_attachment(attachment_id, {"user_id": DEFAULT_USER_ID})
+        attachment = await metadata_store.load_attachment(attachment_id, {"user_id": DEFAULT_USER_ID})
 
         # Clear the upload_url since upload is complete
         attachment.upload_url = None
 
         # Save the updated attachment back to the store
-        await data_store.save_attachment(attachment, {"user_id": DEFAULT_USER_ID})
+        await metadata_store.save_attachment(attachment, {"user_id": DEFAULT_USER_ID})
 
         # Return the attachment metadata as JSON
         return JSONResponse(content=attachment.model_dump(mode="json"))
@@ -87,7 +87,7 @@ async def preview_image(attachment_id: str,
         # Determine media type from file extension or attachment metadata
         # For simplicity, we'll try to load from the store
         try:
-            attachment = await data_store.load_attachment(attachment_id, {"user_id": DEFAULT_USER_ID})
+            attachment = await metadata_store.load_attachment(attachment_id, {"user_id": DEFAULT_USER_ID})
             media_type = attachment.mime_type
         except Exception:
             # Default to binary if we can't determine

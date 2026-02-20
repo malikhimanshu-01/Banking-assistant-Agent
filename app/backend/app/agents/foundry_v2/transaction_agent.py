@@ -1,6 +1,6 @@
 from agent_framework.azure import AzureAIClient
 from agent_framework import tool,Agent, MCPStreamableHTTPTool
-from datetime import datetime
+from app.common.user_profile_provider import UserProfileProvider
 
 import logging
 
@@ -20,10 +20,7 @@ class TransactionHistoryAgent :
     If the user want to search last account transactions for a specific payee, extract it from the request and use it as filter.
     
     Use markdown list or table to display the transaction information.
-    Always use the below logged user details to retrieve account info:
-    {user_mail}
-    Current timestamp:
-    {current_date_time}
+    Always use the logged user details to retrieve account info.
     """
     name = "TransactionHistoryAgent"
     description = "This agent manages user transactions related information such as banking movements and payments history"
@@ -42,10 +39,6 @@ class TransactionHistoryAgent :
     
       logger.info("Building request scoped transaction agent run ")
       
-      user_mail="bob.user@contoso.com"
-      current_date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      full_instruction = TransactionHistoryAgent.instructions.format(user_mail=user_mail, current_date_time=current_date_time)
-
       logger.info("Initializing Account MCP, Transaction MCP server tools for TransactionHistoryAgent ")
       
       async with ( 
@@ -61,9 +54,10 @@ class TransactionHistoryAgent :
 
         agent = Agent(
                 client=self.azure_ai_client,
-                instructions=full_instruction,
+                instructions=TransactionHistoryAgent.instructions,
                 name=TransactionHistoryAgent.name,
                 tools=[account_mcp_server, transaction_mcp_server,handoff_to_triage_agent],
+                context_providers=[UserProfileProvider()]
             )
         agent.default_options["tools"] = [account_mcp_server, transaction_mcp_server,handoff_to_triage_agent]
         return agent  

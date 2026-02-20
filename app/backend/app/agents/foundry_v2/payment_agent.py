@@ -1,8 +1,7 @@
 from agent_framework.azure import AzureAIClient
 from agent_framework import tool,Agent, MCPStreamableHTTPTool
 from app.tools.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
-
-from datetime import datetime
+from app.common.user_profile_provider import UserProfileProvider
 
 import logging
 
@@ -33,10 +32,7 @@ class PaymentAgent :
         When submitting payment always use the available functions to retrieve accountId, paymentMethodId.
         If the payment succeeds provide the user with the payment confirmation. If not provide the user with the error message.
         Use markdown list or table to display bill extracted data, payments, account or transaction details.
-        Always use the below logged user details to retrieve account info:
-       {user_mail}
-        Current timestamp:
-       {current_date_time}
+        Always use the logged user details to retrieve account info.
         Don't try to guess accountId,paymentMethodId from the conversation.When submitting payment always use functions to retrieve accountId, paymentMethodId.
         
         #Upload image example
@@ -63,10 +59,6 @@ class PaymentAgent :
     
       logger.info("Building request scoped Payment agent run ")
       
-      user_mail="bob.user@contoso.com"
-      current_date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      full_instruction = PaymentAgent.instructions.format(user_mail=user_mail, current_date_time=current_date_time)
-      
       logger.info("Initializing Account MCP, Transaction MCP, Payment MCP server tools for PaymentAgent") 
       
       account_mcp_server = MCPStreamableHTTPTool(
@@ -90,13 +82,14 @@ class PaymentAgent :
 
       agent = Agent(
               client=self.azure_ai_client,
-              instructions=full_instruction,
+              instructions=PaymentAgent.instructions,
               name=PaymentAgent.name,
               tools=[account_mcp_server,
                   transaction_mcp_server, 
                   payment_mcp_server,
                   self.document_scanner_helper.scan_invoice,
-                  handoff_to_triage_agent])
+                  handoff_to_triage_agent],
+              context_providers=[UserProfileProvider()])
                 
       agent.default_options["tools"] = [account_mcp_server, 
                                       transaction_mcp_server, 

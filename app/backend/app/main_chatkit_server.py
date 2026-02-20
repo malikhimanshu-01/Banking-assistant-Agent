@@ -27,13 +27,23 @@ def create_app() -> FastAPI:
     # Get logger for this module
     logger = get_logger(__name__)
 
+   
     # Setup agent framework observability
-    configure_azure_monitor(
-    connection_string=settings.APPLICATIONINSIGHTS_CONNECTION_STRING,
-    resource=create_resource(),
-    enable_live_metrics=True,
-    )
-
+    if settings.AGENTS_TYPE == "foundry_v2" :
+        configure_azure_monitor(
+        connection_string=settings.APPLICATIONINSIGHTS_CONNECTION_STRING,
+        resource=create_resource(),
+        enable_live_metrics=True,
+        )
+    else:
+        configure_azure_monitor(
+        connection_string=settings.APPLICATIONINSIGHTS_CONNECTION_STRING,
+        resource=create_resource(),
+        enable_live_metrics=True,
+        )
+        enable_instrumentation()
+        
+    
     logger.info(f"Creating FastAPI application: {settings.APP_NAME}")
     
     app = FastAPI(title=settings.APP_NAME)

@@ -1,0 +1,14 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "npm install - banking-web",
+            "type": "shell",
+            "command": "npm install",
+            "options": {
+                "cwd": "${workspaceFolder}/app/frontend/banking-web"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

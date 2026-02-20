@@ -125,7 +125,6 @@ class ChatKitEventsHandler:
             or event.type == "request_info":
                 continue    
             
-            #TODO: need to handle WorkflowFailedEvent
             if event.type == "handoff_sent":  
                descriptive_title = f"Connected to {event.data.target} "
                handoff_result_task = CustomTask(title=descriptive_title, icon="check-circle-filled")

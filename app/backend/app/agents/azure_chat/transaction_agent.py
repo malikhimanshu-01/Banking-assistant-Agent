@@ -1,6 +1,6 @@
 from agent_framework.azure import AzureOpenAIChatClient
 from agent_framework import Agent, MCPStreamableHTTPTool
-from datetime import datetime
+from app.common.user_profile_provider import UserProfileProvider
 
 import logging
 
@@ -14,10 +14,7 @@ class TransactionHistoryAgent :
     If the user want to search last account transactions for a specific payee, extract it from the request and use it as filter.
     
     Use markdown list or table to display the transaction information.
-    Always use the below logged user details to retrieve account info:
-    {user_mail}
-    Current timestamp:
-    {current_date_time}
+    Always use the logged user details to retrieve account info.
     """
     name = "TransactionHistoryAgent"
     description = "This agent manages user transactions related information such as banking movements and payments history"
@@ -36,10 +33,6 @@ class TransactionHistoryAgent :
     
       logger.info("Building request scoped transaction agent run ")
       
-      user_mail="bob.user@contoso.com"
-      current_date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      full_instruction = TransactionHistoryAgent.instructions.format(user_mail=user_mail, current_date_time=current_date_time)
-
       logger.info("Initializing Account MCP, Transaction MCP server tools for TransactionHistoryAgent ")
       
       account_mcp_server = MCPStreamableHTTPTool(
@@ -57,7 +50,8 @@ class TransactionHistoryAgent :
       
       return Agent(
           client=self.azure_chat_client,
-          instructions=full_instruction,
+          instructions=TransactionHistoryAgent.instructions.strip(),
           name=TransactionHistoryAgent.name,
           tools=[account_mcp_server, transaction_mcp_server],
+          context_providers=[UserProfileProvider()]
       )

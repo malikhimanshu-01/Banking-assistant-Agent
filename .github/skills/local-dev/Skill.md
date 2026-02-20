@@ -29,7 +29,7 @@ This command will:
 
 #### 2. Configure Environment Variables
 
-check for `app/backend/.env.dev` file. 
+check for `app/backend/.env.dev` file. sometimes the file_search tool may not find the file as it doesn't index dotfiles. make sure to check the file system directly.
 if not present try to create it your local development environment file:
 - copy the example env file to .env.dev
 ```bash
@@ -41,21 +41,23 @@ cp .env.dev.example .env.dev
 
 ---
 
-### Backend Development
+### Start-up instructions
 
-### Components
-- Chatkit Server (Primary): Main backend application exposing the chat protocol and hosting agents
-- Custom Chat Server (Alternative): Backend without ChatKit, much simpler. Don't run this if not explicitly required as alternative to ChatKit.
-- Business API Services: Account, Transaction, and Payment services that the agents interact with. They both contain REST API and MCP endpoints.
-- Banking Web: Banking web application that connects to the backend and provides a user interface.
+### Components and test to run
+1. Business API Services: Account, Transaction, and Payment services that the agents interact with. They both contain REST API and MCP endpoints.
+2. Chatkit Server (Primary): Main backend application exposing the chat protocol and hosting agents
+3. Smoke Test: A curl command to test the chat endpoint with a sample request.
+4. Banking Web: Banking web application that connects to the backend and provides a user interface.
 
-You need to start each component separately on different terminal windows. Make sure to set the required environment variables for each component as described in the instructions. The instructions are for shell/bash, so adjust accordingly if you are using a Windows command or PowerShell.
+You need to start each component separately on different terminal windows.
+- Make sure to set the required environment variables for each component as described in the instructions. 
+- The instructions are for shell/bash, so adjust accordingly if you are using a Windows command or PowerShell.
 
 
 ### Business API Development (Python)
 
 #### Account Service
-run in a shell terminal as background process
+run in a shell terminal as foreground process so you can see logs streaming. use terminal console to stream log, don't forward them to filesystem.
 ```bash
 cd app/business-api/python/account
 uv sync                                    # Install dependencies
@@ -63,7 +65,7 @@ PROFILE=dev uv run python main.py          # Run with dev profile
 ```
 
 #### Payment Service
-run in a shell terminal as background process
+run in a shell terminal as foreground process so you can see logs streaming. use terminal console to stream log, don't forward them to filesystem.
 ```bash
 cd app/business-api/python/payment
 uv sync                                    # Install dependencies
@@ -72,7 +74,7 @@ PROFILE=dev TRANSACTIONS_API_SERVER_URL=http://localhost:8071 \
 ```
 
 #### Transaction Service
-run in a shell terminal as background process
+run in a shell terminal as foreground process so you can see logs streaming. use terminal console to stream log, don't forward them to filesystem.
 ```bash
 cd app/business-api/python/transaction
 uv sync                                    # Install dependencies
@@ -81,7 +83,7 @@ PROFILE=dev uv run python main.py          # Run with dev profile
 
 
 #### ChatKit Server (Primary)
-run in a shell terminal as background process
+run in a shell terminal as foreground process so you can see logs streaming. use terminal console to stream log, don't forward them to filesystem.
 
 ```bash
 cd app/backend

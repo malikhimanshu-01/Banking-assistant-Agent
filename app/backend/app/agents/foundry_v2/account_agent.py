@@ -1,5 +1,6 @@
 from agent_framework.azure import AzureAIClient
 from agent_framework import tool,Agent, MCPStreamableHTTPTool
+from app.common.user_profile_provider import UserProfileProvider
 
 import logging
 
@@ -17,8 +18,7 @@ class AccountAgent :
     instructions = """
     you are a personal financial advisor who help the user to retrieve information about their bank accounts.
     Always use markdown to format your response.
-    Always use the below logged user details to retrieve account info:
-    {user_mail}
+    Always use the logged user details to retrieve account info.
     """
     name = "AccountAgent"
     description = "This agent manages user accounts related information such as balance, credit cards."
@@ -34,9 +34,6 @@ class AccountAgent :
     
       logger.info("Initializing Account Agent connection for account api ")
       
-      user_mail="bob.user@contoso.com"
-      full_instruction = AccountAgent.instructions.format(user_mail=user_mail)
-
       logger.info("Initializing Account MCP server tools for AccountAgent ")
       account_mcp_server = MCPStreamableHTTPTool(
                 name="Account MCP server client",
@@ -44,9 +41,10 @@ class AccountAgent :
       await account_mcp_server.connect()
       agent = Agent(
                 client=self.azure_ai_client,
-                instructions=full_instruction,
+                instructions=AccountAgent.instructions,
                 name=AccountAgent.name,
-                tools=[account_mcp_server, handoff_to_triage_agent]
+                tools=[account_mcp_server, handoff_to_triage_agent],
+                context_providers=[UserProfileProvider()]
             )
       agent.default_options["tools"] = [account_mcp_server, handoff_to_triage_agent]
       return agent

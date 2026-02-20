@@ -4,7 +4,16 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-       
+        {
+            "name": "DEV - Banking Web App",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "dev"],
+            "cwd": "${workspaceFolder}/app/frontend/banking-web",
+            "preLaunchTask": "npm install - banking-web",
+            "console": "integratedTerminal"
+        },
        
         {
             "name": "DevUI",
@@ -20,24 +29,7 @@
             "justMyCode": true
 
         },
-          {
-            "name": "DEV - Custom Chat Server",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "uvicorn",
-            "args": [
-                "app.main_handoff:app",
-                "--port", "8080"
-            ],
-            "env": {
-                "PROFILE": "dev",
-                "ENABLE_SENSITIVE_DATA": "true"
-            },
-            "jinja": true,
-            "cwd": "${workspaceFolder}/app/backend",
-            "justMyCode": true
-
-        },
+         
         {
             "name": "DEV - Chatkit Backend App",
             "type": "debugpy",
