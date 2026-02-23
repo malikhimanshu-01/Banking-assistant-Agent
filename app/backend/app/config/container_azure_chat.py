@@ -102,21 +102,21 @@ class Container(containers.DeclarativeContainer):
 
     ############# ChatKit based agents and orchestrator #############
 
-    #Account Agent with Azure chat based agents. Can be singleton as thread state is passed to the underlying agent run method
-    account_agent_chatkit = providers.Singleton(
+    #Account Agent with Azure chat based agents. Must be Factory (not Singleton) so a fresh AzureOpenAIChatClient with valid credentials is created per request.
+    account_agent_chatkit = providers.Factory(
     AccountAgentChatKit,
     azure_chat_client=_azure_chat_client,
     account_mcp_server_url=f"{settings.ACCOUNT_MCP_URL}/mcp"
     )
 
-    transaction_agent_chatkit = providers.Singleton(
+    transaction_agent_chatkit = providers.Factory(
     TransactionHistoryAgentChatKit,
     azure_chat_client=_azure_chat_client,
     account_mcp_server_url=f"{settings.ACCOUNT_MCP_URL}/mcp",
     transaction_mcp_server_url=f"{settings.TRANSACTION_MCP_URL}/mcp"
     )
 
-    payment_agent_chatkit = providers.Singleton(
+    payment_agent_chatkit = providers.Factory(
     PaymentAgentChatKit,
     azure_chat_client=_azure_chat_client,
     account_mcp_server_url=f"{settings.ACCOUNT_MCP_URL}/mcp",
