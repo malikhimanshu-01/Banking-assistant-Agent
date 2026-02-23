@@ -95,6 +95,7 @@ Agents-to-Chat communication protocol is based on [OpenAI Chatkit protocol]((htt
 
 ### Additional resources
 
+- [Skilling-Presentation](./docs/Home%20Banking%20Assistant.pdf)
 - [Technical Architecture](./docs/technical-architecture.md)
 - [Chat-to-Agent Conversational protocol implementation](./docs/chat-server-protocol.md)
 - For Semantic Kernel version check this [branch](https://github.com/Azure-Samples/agent-openai-python-banking-assistant/tree/semantic-kernel)
