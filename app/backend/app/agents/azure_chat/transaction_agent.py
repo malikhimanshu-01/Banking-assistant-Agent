@@ -1,4 +1,4 @@
-from agent_framework.azure import AzureOpenAIChatClient
+from agent_framework.openai import OpenAIChatCompletionClient
 from agent_framework import Agent, MCPStreamableHTTPTool
 from app.common.user_profile_provider import UserProfileProvider
 
@@ -19,7 +19,7 @@ class TransactionHistoryAgent :
     name = "TransactionHistoryAgent"
     description = "This agent manages user transactions related information such as banking movements and payments history"
 
-    def __init__(self, azure_chat_client: AzureOpenAIChatClient,
+    def __init__(self, azure_chat_client: OpenAIChatCompletionClient,
                  account_mcp_server_url: str,
                  transaction_mcp_server_url: str,
                   ):

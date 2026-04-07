@@ -1,4 +1,4 @@
-from agent_framework.azure import AzureAIClient
+from agent_framework.foundry import FoundryChatClient
 from agent_framework import tool,Agent, MCPStreamableHTTPTool
 from app.tools.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
 from app.common.user_profile_provider import UserProfileProvider
@@ -42,7 +42,7 @@ class PaymentAgent :
     name = "PaymentAgent"
     description = "This agent manages user payments related information such as submitting payment requests and bill payments."
 
-    def __init__(self, azure_ai_client: AzureAIClient,
+    def __init__(self, azure_ai_client: FoundryChatClient,
                   account_mcp_server_url: str,
                   transaction_mcp_server_url: str,
                   payment_mcp_server_url: str,

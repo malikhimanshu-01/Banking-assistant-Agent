@@ -23,7 +23,7 @@ from app.agents.azure_chat.account_agent import AccountAgent as AccountAgentChat
 from app.agents.azure_chat.transaction_agent import TransactionHistoryAgent as TransactionHistoryAgentChatKit
 from app.agents.azure_chat.payment_agent import PaymentAgent as PaymentAgentChatKit
 
-from agent_framework.azure import AzureOpenAIChatClient
+from agent_framework.openai import OpenAIChatCompletionClient
 
 
 
@@ -60,11 +60,11 @@ class Container(containers.DeclarativeContainer):
     
 
 
-    # Azure Chat based agents. Unfortunately we can't create reusable singleton instance of AzureOpenAiChatCLient as it does not support token expiration management.
+    # Azure Chat based agents. Unfortunately we can't create reusable singleton instance of OpenAIChatCompletionClient as it does not support token expiration management.
     _azure_chat_client = providers.Factory(
-        AzureOpenAIChatClient,
+        OpenAIChatCompletionClient,
         credential=providers.Factory(get_azure_credential), 
-        endpoint=settings.AZURE_OPENAI_ENDPOINT,deployment_name=settings.AZURE_OPENAI_CHAT_DEPLOYMENT_NAME
+        azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,model=settings.AZURE_OPENAI_CHAT_DEPLOYMENT_NAME
     )
 
     #Account Agent with Azure chat based agents. Can be singleton as thread state is passed to the underlying agent run method
@@ -102,7 +102,7 @@ class Container(containers.DeclarativeContainer):
 
     ############# ChatKit based agents and orchestrator #############
 
-    #Account Agent with Azure chat based agents. Must be Factory (not Singleton) so a fresh AzureOpenAIChatClient with valid credentials is created per request.
+    #Account Agent with Azure chat based agents. Must be Factory (not Singleton) so a fresh OpenAIChatCompletionClient with valid credentials is created per request.
     account_agent_chatkit = providers.Factory(
     AccountAgentChatKit,
     azure_chat_client=_azure_chat_client,

@@ -12,7 +12,7 @@ from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 from app.config.settings import settings
 from app.config.azure_credential import get_azure_credential
 from app.helpers.blob_proxy import BlobStorageProxy
-from agent_framework._tools import tool
+from agent_framework import tool
 from pydantic import Field
 import json
 

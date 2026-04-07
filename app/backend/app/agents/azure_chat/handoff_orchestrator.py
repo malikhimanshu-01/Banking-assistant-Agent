@@ -3,10 +3,11 @@ from collections.abc import AsyncIterable
 from agent_framework import CheckpointStorage, Content,AgentResponseUpdate, Agent,InMemoryCheckpointStorage,WorkflowCheckpoint, WorkflowEvent
 from agent_framework.exceptions import AgentFrameworkException
 from agent_framework.orchestrations import HandoffBuilder,HandoffAgentUserRequest
-from agent_framework.azure import AzureOpenAIChatClient
+from agent_framework.openai import OpenAIChatCompletionClient
 from app.agents.azure_chat.account_agent import AccountAgent
 from app.agents.azure_chat.transaction_agent import TransactionHistoryAgent
 from app.agents.azure_chat.payment_agent import PaymentAgent
+from app.helpers.no_history_provider import NoHistoryProvider
 from uuid import uuid4
 import logging
 
@@ -36,7 +37,7 @@ class HandoffOrchestrator:
     thread_checkpoint_store: dict[str, CheckpointStorage] = {}
 
     def __init__(self, 
-                 azure_chat_client: AzureOpenAIChatClient,
+                 azure_chat_client: OpenAIChatCompletionClient,
                  account_agent: AccountAgent,
                  transaction_agent: TransactionHistoryAgent,
                  payment_agent: PaymentAgent
@@ -52,7 +53,13 @@ class HandoffOrchestrator:
       triage_agent = Agent(
             client=self.azure_chat_client,
             instructions=HandoffOrchestrator.triage_instructions,
-            name="triage_agent"
+            name="triage_agent",
+            # NoHistoryProvider prevents the framework from auto-injecting an
+            # InMemoryHistoryProvider.  Inside a HandoffBuilder workflow the
+            # executor already tracks the full conversation, so the auto-injected
+            # provider would duplicate messages on every turn, eventually causing
+            # OpenAI 400 errors due to mismatched tool_calls / tool results.
+            context_providers=[NoHistoryProvider()]
         )
       
       self.workflow = (
@@ -62,14 +69,10 @@ class HandoffOrchestrator:
                           await self.account_agent.build_af_agent(),
                           await self.transaction_agent.build_af_agent(),
                           await self.payment_agent.build_af_agent()],
+            termination_condition=lambda conv: sum(1 for msg in conv if msg.role == "user") >= 20,
+            checkpoint_storage=checkpoint_storage,
         )
         .with_start_agent(triage_agent)
-        .with_termination_condition(
-            # Terminate after 20 user messages 
-            # Count only USER role messages to avoid counting agent responses
-            lambda conv: sum(1 for msg in conv if msg.role == "user") >= 20
-        )
-        .with_checkpointing(checkpoint_storage)
         .build()
     )
 

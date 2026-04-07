@@ -157,7 +157,8 @@ The core multi-agent orchestration service that exposes chat API endpoints.
 │       └── 📄 invoice_scanner_plugin.py # Document Intelligence integration
 │
 └── 📁 tests/                            # Unit and integration tests
-    └── 📄 test_account_agent_chatkit.py # Agent testing with ChatKit
+    ├── 📄 test_account_agent_chatkit.py # Agent unit testing with ChatKit
+    └── 📄 test_chatkit_router.py        # Integration tests for /chatkit SSE flows
 ```
 
 #### `/app/business-api` - Business Domain Services
@@ -356,5 +357,50 @@ This command:
 
 - **Application Insights**: Request tracing, dependency tracking
 - **OpenTelemetry**: Distributed tracing across agents and services
+
+---
+
+## Integration Tests
+
+Integration tests validate the full ChatKit SSE event flow end-to-end, hitting the `/chatkit` endpoint with mock MCP servers and a real Azure OpenAI backend.
+
+### Prerequisites
+
+- **Azure OpenAI credentials** configured in `app/backend/.env.dev` (`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME`)
+- **Python dependencies** installed (including dev extras)
+
+### Setup
+
+```bash
+cd app/backend
+uv pip install -e ".[dev]"
+```
+
+### Running Tests
+
+```bash
+# Run all integration tests
+uv run python -m pytest tests/test_chatkit_router.py -v -s
+
+# Run a specific test class
+uv run python -m pytest tests/test_chatkit_router.py::TestChatkitNewThreadFlow -v -s
+uv run python -m pytest tests/test_chatkit_router.py::TestChatkitMultiTurnConversation -v -s
+uv run python -m pytest tests/test_chatkit_router.py::TestChatkitPaymentFlow -v -s
+```
+
+### Test Architecture
+
+- **Mock MCP servers**: In-process FastMCP servers (account, transaction, payment) start on random free ports with sample data. They replicate the real business API tool signatures.
+- **Configuration**: Tests set `PROFILE=dev` to load `.env.dev` for Azure OpenAI config, then override `ACCOUNT_MCP_URL`, `TRANSACTION_MCP_URL`, and `PAYMENT_MCP_URL` to point to the mock servers.
+- **Telemetry**: `APPLICATIONINSIGHTS_CONNECTION_STRING` is cleared so `configure_azure_monitor` is skipped during tests.
+- **ASGI transport**: Tests use `httpx.AsyncClient` with `ASGITransport` and `asgi-lifespan` to call the FastAPI app in-process (no real HTTP server needed for the backend).
+
+### Test Flows
+
+| Test Class | Description |
+|---|---|
+| `TestChatkitNewThreadFlow` | Creates a new thread, sends a question about Contoso payments, and validates the full SSE event sequence: `thread.created` → `user_message` → `progress_update` → `task` events → streaming `text_delta` → final `assistant_message`. |
+| `TestChatkitMultiTurnConversation` | Two-turn conversation in the same thread. First asks about Contoso, then follows up with "what about ACME" to verify the agent preserves conversation context across turns. |
+| `TestChatkitPaymentFlow` | Multi-turn payment with human-in-the-loop approval. User requests a bill payment → selects card → agent emits `tool_approval_request` widget → user approves via `threads.custom_action` → agent confirms payment. The test adapts to LLM variability (the agent may compress or expand the number of turns before requesting approval). |
 
 ---

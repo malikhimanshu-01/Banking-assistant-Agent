@@ -1,7 +1,8 @@
-from agent_framework.azure import AzureOpenAIChatClient
+from agent_framework.openai import OpenAIChatCompletionClient
 from agent_framework import Agent, MCPStreamableHTTPTool
 from app.tools.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
 from app.common.user_profile_provider import UserProfileProvider
+from app.helpers.no_history_provider import NoHistoryProvider
 
 import logging
 
@@ -38,7 +39,7 @@ class PaymentAgent :
     name = "PaymentAgent"
     description = "This agent manages user payments related information such as submitting payment requests and bill payments."
 
-    def __init__(self, azure_chat_client: AzureOpenAIChatClient,
+    def __init__(self, azure_chat_client: OpenAIChatCompletionClient,
                   account_mcp_server_url: str,
                   transaction_mcp_server_url: str,
                   payment_mcp_server_url: str,
@@ -82,6 +83,12 @@ class PaymentAgent :
       tools=[account_mcp_server,
               transaction_mcp_server, 
               payment_mcp_server,
-            self.document_scanner_helper.scan_invoice])
+            self.document_scanner_helper.scan_invoice],
+      # NoHistoryProvider prevents the framework from auto-injecting an
+      # InMemoryHistoryProvider.  Inside a HandoffBuilder workflow the
+      # executor already tracks the full conversation, so the auto-injected
+      # provider would duplicate messages on every turn, eventually causing
+      # OpenAI 400 errors due to mismatched tool_calls / tool results.
+      context_providers=[NoHistoryProvider()])
             
         

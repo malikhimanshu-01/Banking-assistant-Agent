@@ -1,4 +1,4 @@
-from agent_framework.azure import AzureOpenAIChatClient
+from agent_framework.openai import OpenAIChatCompletionClient
 from agent_framework import Agent, MCPStreamableHTTPTool
 from app.common.user_profile_provider import UserProfileProvider
 
@@ -16,7 +16,7 @@ class AccountAgent :
     name = "AccountAgent"
     description = "This agent manages user accounts related information such as balance, credit cards."
 
-    def __init__(self, azure_chat_client: AzureOpenAIChatClient, account_mcp_server_url: str):
+    def __init__(self, azure_chat_client: OpenAIChatCompletionClient, account_mcp_server_url: str):
         self.azure_chat_client = azure_chat_client
         self.account_mcp_server_url = account_mcp_server_url
 

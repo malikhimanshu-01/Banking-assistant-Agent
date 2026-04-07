@@ -1,9 +1,9 @@
 from typing import Any, AsyncGenerator
 from collections.abc import AsyncIterable
-from agent_framework import AgentResponseUpdate, Agent,InMemoryCheckpointStorage, ChatContext,WorkflowCheckpoint, WorkflowEvent
+from agent_framework import AgentResponseUpdate, Agent,InMemoryCheckpointStorage,WorkflowCheckpoint, WorkflowEvent
 from agent_framework.orchestrations import HandoffBuilder,HandoffAgentUserRequest
 from agent_framework.exceptions import AgentFrameworkException
-from agent_framework.azure import AzureOpenAIChatClient
+from agent_framework.openai import OpenAIChatCompletionClient
 from app.agents.azure_chat.simple.account_agent import AccountAgent
 from app.agents.azure_chat.simple.transaction_agent import TransactionHistoryAgent
 from app.agents.azure_chat.simple.payment_agent import PaymentAgent
@@ -37,7 +37,7 @@ class HandoffOrchestrator:
     checkpoint_storage = InMemoryCheckpointStorage()
 
     def __init__(self, 
-                 azure_chat_client: AzureOpenAIChatClient,
+                 azure_chat_client: OpenAIChatCompletionClient,
                  account_agent: AccountAgent,
                  transaction_agent: TransactionHistoryAgent,
                  payment_agent: PaymentAgent
@@ -63,14 +63,10 @@ class HandoffOrchestrator:
                           await self.account_agent.build_af_agent(),
                           await self.transaction_agent.build_af_agent(),
                           await self.payment_agent.build_af_agent()],
+            termination_condition=lambda conv: sum(1 for msg in conv if msg.role == "user") >= 20,
+            checkpoint_storage=HandoffOrchestrator.checkpoint_storage,
         )
         .with_start_agent(triage_agent)
-        .with_termination_condition(
-            # Terminate after 20 user messages 
-            # Count only USER role messages to avoid counting agent responses
-            lambda conv: sum(1 for msg in conv if msg.role == "user") >= 20
-        )
-        .with_checkpointing(HandoffOrchestrator.checkpoint_storage)
         .build()
     )
 
@@ -101,13 +97,17 @@ class HandoffOrchestrator:
         """
         events = self.workflow.run(checkpoint_id=checkpoint_id, checkpoint_storage=self.checkpoint_storage, stream=True) #type: ignore
         
+        responses: dict[str, object] = {}
+        
         #We need to collect all workflow events otherwise we get concurrent workflow execution error when trying to resume.
         consumed_events = [event async for event in events]
         for event in consumed_events:
             if event.type == "request_info":
                 if isinstance(event.data, HandoffAgentUserRequest):
-                        response = {event.request_id: user_message}
-                        return self.workflow.send_responses_streaming(response) #type: ignore
+                        responses[event.request_id] = HandoffAgentUserRequest.create_response(user_message)
+                        return self.workflow.run(responses=responses, checkpoint_id=checkpoint_id, #type: ignore
+                                                 checkpoint_storage=self.checkpoint_storage, 
+                                                 stream=True) #type: ignore
                 else:
                     raise AgentFrameworkException(f"RequestInfoEvent [{event.request_id}] found in the checkpoint [{checkpoint_id}] that is not a HandoffAgentUserRequest.")
         #if we reach here, something went wrong. For this use case HandoffOrchestrator expected to always trigger a RequestInfoEvent.
@@ -156,8 +156,7 @@ class HandoffOrchestrator:
                 yield (chunk, False, None)
 
          #Saving the last checkpoint for the conversation thread
-         checkpoints = await self.checkpoint_storage.list_checkpoints(workflow_id=thread_id) # type: ignore
-         last_checkpoint = checkpoints[-1] if checkpoints else None
+         last_checkpoint = await self.checkpoint_storage.get_latest(workflow_name=self.workflow.name) # type: ignore
          if last_checkpoint is None:
             raise AgentFrameworkException(f"No checkpoint found after completing the first conversation for thread_id: {thread_id}")
          #saving the last checkpoint for the conversation thread using workflow_id as thread_id

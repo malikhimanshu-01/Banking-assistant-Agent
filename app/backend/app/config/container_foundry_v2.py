@@ -2,7 +2,7 @@
 
 import os
 
-from agent_framework.azure import AzureAIClient
+from agent_framework.foundry import FoundryChatClient
 from dependency_injector import containers, providers
 from azure.ai.projects import AIProjectClient
 from azure.ai.documentintelligence import DocumentIntelligenceClient
@@ -59,9 +59,9 @@ class Container(containers.DeclarativeContainer):
        
        # Foundry v2 Agent Client
     _azure_ai_client = providers.Factory(
-        AzureAIClient,
+        FoundryChatClient,
         credential=providers.Factory(get_async_azure_credential), 
-        project_endpoint=settings.AZURE_AI_PROJECT_ENDPOINT,model_deployment_name=settings.AZURE_AI_MODEL_DEPLOYMENT_NAME
+        project_endpoint=settings.AZURE_AI_PROJECT_ENDPOINT,model=settings.AZURE_AI_MODEL_DEPLOYMENT_NAME
     )
 
    

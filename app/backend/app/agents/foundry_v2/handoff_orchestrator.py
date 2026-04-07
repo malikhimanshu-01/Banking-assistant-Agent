@@ -1,11 +1,12 @@
-from typing import Any, AsyncGenerator
+from typing import AsyncGenerator
 from collections.abc import AsyncIterable,Sequence
 from agent_framework import CheckpointStorage, SupportsAgentRun,FunctionTool,tool,Content,AgentResponseUpdate, Agent,InMemoryCheckpointStorage,WorkflowCheckpoint, WorkflowEvent
 from agent_framework.exceptions import AgentFrameworkException
-from agent_framework.azure import AzureAIClient
+from agent_framework.foundry import FoundryChatClient
 from app.agents.foundry_v2.account_agent import AccountAgent
 from app.agents.foundry_v2.transaction_agent import TransactionHistoryAgent
 from app.agents.foundry_v2.payment_agent import PaymentAgent
+from app.helpers.no_history_provider import NoHistoryProvider
 from uuid import uuid4
 import logging
 
@@ -60,7 +61,7 @@ class CustomHandoffAgentExecutor(HandoffAgentExecutor):
         existing_tools = list(default_options.get("tools") or [])
         existing_names = {getattr(tool, "name", "") for tool in existing_tools if hasattr(tool, "name")}
 
-        new_tools: list[FunctionTool[Any]] = []
+        new_tools: list[FunctionTool] = []
         for target in targets:
             tool = self._create_handoff_tool(target.target_id, target.description)
             if tool.name in existing_names:
@@ -125,7 +126,7 @@ class HandoffOrchestrator:
     checkpoint_storage = InMemoryCheckpointStorage()
 
     def __init__(self, 
-                 azure_ai_client: AzureAIClient,
+                 azure_ai_client: FoundryChatClient,
                  account_agent: AccountAgent,
                  transaction_agent: TransactionHistoryAgent,
                  payment_agent: PaymentAgent
@@ -142,7 +143,13 @@ class HandoffOrchestrator:
             client=self.azure_ai_client,
             instructions=HandoffOrchestrator.triage_instructions,
             name="TriageAgent",
-            tools=[handoff_to_account_agent, handoff_to_transaction_history_agent, handoff_to_payment_agent]
+            tools=[handoff_to_account_agent, handoff_to_transaction_history_agent, handoff_to_payment_agent],
+            # NoHistoryProvider prevents the framework from auto-injecting an
+            # InMemoryHistoryProvider.  Inside a HandoffBuilder workflow the
+            # executor already tracks the full conversation, so the auto-injected
+            # provider would duplicate messages on every turn, eventually causing
+            # OpenAI 400 errors due to mismatched tool_calls / tool results.
+            context_providers=[NoHistoryProvider()]
         )
       
        # Register handoff tools in default_options so CustomHandoffBuilder sees them
@@ -160,6 +167,8 @@ class HandoffOrchestrator:
         CustomHandoffBuilder(
             name="banking_assistant_handoff",
             participants=[triage_agent,account_agent,transaction_agent,payment_agent],
+            termination_condition=lambda conv: sum(1 for msg in conv if msg.role == "user") >= 20,
+            checkpoint_storage=checkpoint_storage,
         )
         .with_start_agent(triage_agent)
         .add_handoff(
@@ -168,12 +177,6 @@ class HandoffOrchestrator:
         .add_handoff(account_agent, [triage_agent])  # Specialists can hand off back to triage
         .add_handoff(transaction_agent, [triage_agent])  # Specialists can hand off back to triage
         .add_handoff(payment_agent, [triage_agent])  # Specialists can hand off
-        .with_termination_condition(
-            # Terminate after 20 user messages 
-            # Count only USER role messages to avoid counting agent responses
-            lambda conv: sum(1 for msg in conv if msg.role == "user") >= 20
-        )
-        .with_checkpointing(checkpoint_storage)
         .build()
     )
 

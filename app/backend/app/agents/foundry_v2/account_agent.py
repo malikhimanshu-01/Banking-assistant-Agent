@@ -1,4 +1,4 @@
-from agent_framework.azure import AzureAIClient
+from agent_framework.foundry import FoundryChatClient
 from agent_framework import tool,Agent, MCPStreamableHTTPTool
 from app.common.user_profile_provider import UserProfileProvider
 
@@ -24,7 +24,7 @@ class AccountAgent :
     description = "This agent manages user accounts related information such as balance, credit cards."
    
 
-    def __init__(self, azure_ai_client: AzureAIClient, account_mcp_server_url: str):
+    def __init__(self, azure_ai_client: FoundryChatClient, account_mcp_server_url: str):
         self.azure_ai_client = azure_ai_client
         self.account_mcp_server_url = account_mcp_server_url
 

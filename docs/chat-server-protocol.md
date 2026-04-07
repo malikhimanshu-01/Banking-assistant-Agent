@@ -1080,4 +1080,241 @@ interface ToolChoice {
 }
 ```
 
+---
+
+## Chat Flows
+
+This section describes the three core conversational flows supported by the ChatKit protocol, including sequence diagrams and event-by-event breakdowns.
+
+### Flow 1 – New Thread (First User Message)
+
+When a user starts a new conversation, the client sends a `threads.create` request. The server creates the thread, echoes the user message, and streams the agent's response — including progress updates, tool-call tasks, text deltas, and the final assistant message.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as ChatKit Server
+    participant O as Orchestrator
+    participant A as Specialist Agent
+    participant MCP as MCP Server
+
+    C->>S: POST /chatkit { type: "threads.create", params: { input: { content: [...] } } }
+    S-->>C: SSE: thread.created { thread: { id: "thr_xxx" } }
+    S-->>C: SSE: thread.item.done { item: { type: "user_message", content: [...] } }
+    S-->>C: SSE: stream_options { allow_cancel: true }
+    S-->>C: SSE: progress_update { text: "Processing your request ..." }
+
+    S->>O: processMessageStream(messages)
+    O->>A: handoff to specialist agent
+    S-->>C: SSE: thread.item.added { item: { type: "task", title: "Connected to TransactionHistoryAgent" } }
+
+    A->>MCP: getAccountsByUserName(userName)
+    MCP-->>A: [account data]
+    S-->>C: SSE: thread.item.added { item: { type: "task", title: "Retrieved account info" } }
+
+    A->>MCP: getTransactionsByRecipientName(accountId, recipientName)
+    MCP-->>A: [transaction records]
+    S-->>C: SSE: thread.item.added { item: { type: "task", title: "Found transactions for Contoso" } }
+
+    A-->>S: streaming text response
+    S-->>C: SSE: thread.item.added { item: { type: "assistant_message", content: [{ text: "Here" }] } }
+    S-->>C: SSE: thread.item.updated { update: { type: "text_delta", delta: " are" } }
+    S-->>C: SSE: thread.item.updated { update: { type: "text_delta", delta: " the" } }
+    Note over S,C: ... more text deltas streamed token by token ...
+    S-->>C: SSE: thread.item.done { item: { type: "assistant_message", content: [{ text: "full response" }] } }
+```
+
+#### Event Sequence
+
+| # | Event Type | Description |
+|---|---|---|
+| 1 | `thread.created` | A new thread is created with a unique `thread_id`. The client stores this ID for all subsequent requests in this conversation. |
+| 2 | `thread.item.done` | The user's original message is echoed back as a `user_message` item, confirming it was received and stored in the thread. |
+| 3 | `stream_options` | Stream configuration is sent (e.g., `allow_cancel: true`) so the client can render a cancel button. |
+| 4 | `progress_update` | Ephemeral status text (e.g., "Processing your request ...") displayed as a shimmer indicator. Replaced by subsequent events. |
+| 5 | `thread.item.added` (task) | One or more task events appear as the orchestrator hands off to specialist agents and those agents invoke MCP tools. Each task has a title (e.g., "Connected to TransactionHistoryAgent", "Retrieved account info"). |
+| 6 | `thread.item.added` (assistant_message) | The assistant message item is created with the first token of text. |
+| 7 | `thread.item.updated` (text_delta) | Incremental text deltas stream token-by-token, enabling the typewriter rendering effect. |
+| 8 | `thread.item.done` (assistant_message) | The final, complete assistant message with full text content. The client uses this to replace the incrementally built text. |
+
+---
+
+### Flow 2 – Multi-Turn Conversation (Follow-Up Message)
+
+When the user sends a follow-up message within an existing thread, the client sends a `threads.add_user_message` request with the `thread_id`. The server resumes from the thread's conversation history, preserving context across turns.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as ChatKit Server
+    participant O as Orchestrator
+    participant A as Specialist Agent
+    participant MCP as MCP Server
+
+    Note over C,S: Thread already exists from Flow 1 (thread_id = "thr_xxx")
+
+    C->>S: POST /chatkit { type: "threads.add_user_message", params: { thread_id: "thr_xxx", input: { content: [...] } } }
+    S-->>C: SSE: thread.item.done { item: { type: "user_message" } }
+    S-->>C: SSE: stream_options { allow_cancel: true }
+    S-->>C: SSE: progress_update { text: "Processing your request ..." }
+
+    S->>O: processMessageStream(messages) with full conversation history
+    O->>A: handoff (agent has context from previous turns)
+
+    A->>MCP: getTransactionsByRecipientName(accountId, "ACME")
+    MCP-->>A: [ACME transactions]
+    S-->>C: SSE: thread.item.added { item: { type: "task", title: "Found transactions for ACME" } }
+
+    A-->>S: streaming text response
+    S-->>C: SSE: thread.item.added { item: { type: "assistant_message" } }
+    S-->>C: SSE: thread.item.updated { update: { type: "text_delta", delta: "..." } }
+    Note over S,C: ... text deltas ...
+    S-->>C: SSE: thread.item.done { item: { type: "assistant_message" } }
+```
+
+#### Key Differences from Flow 1
+
+| Aspect | Flow 1 (New Thread) | Flow 2 (Follow-Up) |
+|---|---|---|
+| Request type | `threads.create` | `threads.add_user_message` |
+| Thread ID | Generated by server | Must be provided by client |
+| First SSE event | `thread.created` | `thread.item.done` (user message echo) |
+| Conversation context | None | Full history from previous turns |
+| Agent behavior | Fresh context | Understands implicit references (e.g., "what about ACME" is interpreted as a transaction inquiry based on the previous turn) |
+
+#### Context Preservation
+
+The orchestrator passes the full conversation history (all previous user and assistant messages) to the agent on each turn. This enables the agent to:
+- Resolve ambiguous follow-up queries ("what about ACME" → understands "transactions for ACME")
+- Avoid repeating already-completed steps (e.g., account lookup cached from turn 1)
+- Maintain the same specialist agent routing when the topic hasn't changed
+
+---
+
+### Flow 3 – Client Widget and Custom Action (Human-in-the-Loop Approval)
+
+This flow covers multi-turn interactions where the agent requires explicit human approval before executing a sensitive action (e.g., payment). The agent framework's `approval_mode` on MCP tools triggers a checkpoint-and-pause mechanism. The server emits a `client_widget` with a `tool_approval_request`, and the client sends back a `threads.custom_action` with the user's decision.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as ChatKit Server
+    participant O as Orchestrator
+    participant PA as Payment Agent
+    participant MCP as MCP Servers
+
+    C->>S: threads.create { "I need to pay a bill. Payee: Mario, Invoice: 1561672, Amount: 100 EUR" }
+    S-->>C: SSE: thread.created { thread_id: "thr_yyy" }
+    S-->>C: SSE: thread.item.done { user_message }
+
+    PA->>MCP: getAccountsByUserName, getTransactionsByRecipientName
+    MCP-->>PA: account data, no prior payments
+    S-->>C: SSE: task events (account lookup, transaction search)
+    S-->>C: SSE: assistant_message { "Bill not yet paid. Select a payment method." }
+
+    C->>S: threads.add_user_message { "use my rechargeable visa card" }
+    S-->>C: SSE: thread.item.done { user_message }
+
+    PA->>MCP: getCreditCards, getCardDetails
+    MCP-->>PA: card details (balance: 640.25 EUR)
+    S-->>C: SSE: task events (card lookup)
+    S-->>C: SSE: assistant_message { "Card has enough funds. Confirm?" }
+
+    C->>S: threads.add_user_message { "proceed with the payment" }
+    S-->>C: SSE: thread.item.done { user_message }
+
+    Note over PA: Agent calls processPayment → approval_mode triggers checkpoint
+    PA-->>O: function_approval_request event
+    O-->>S: WorkflowEvent (request_info)
+
+    S-->>C: SSE: thread.item.done { type: "client_widget", name: "tool_approval_request", args: { tool_name, tool_args, call_id } }
+
+    Note over C: Client renders approval UI with payment details
+
+    C->>S: threads.custom_action { item_id: "wdg_xxx", action: { type: "approval", payload: { approved: true, call_id, tool_name, tool_args } } }
+
+    S->>O: processToolApprovalResponse(approved=true)
+    O->>PA: resume workflow from checkpoint
+    PA->>MCP: processPayment(account_id, amount, ...)
+    MCP-->>PA: { status: "ok" }
+    S-->>C: SSE: task events (payment submitted)
+    S-->>C: SSE: assistant_message { "Payment confirmed." }
+```
+
+#### Approval Widget Event
+
+When the agent attempts to call a tool configured with `approval_mode: always_require_approval`, the framework pauses execution and emits a `client_widget` event:
+
+```json
+{
+  "type": "thread.item.done",
+  "item": {
+    "id": "wdg_100daee1",
+    "thread_id": "thr_yyy",
+    "type": "client_widget",
+    "name": "tool_approval_request",
+    "args": {
+      "tool_name": "processPayment",
+      "tool_args": "{\"account_id\":\"1010\",\"amount\":100,...}",
+      "call_id": "call_l4vKKGYun9DtHRZ9lChkF5TC",
+      "request_id": null
+    }
+  }
+}
+```
+
+The client renders this as an approval card showing the payment details with **Approve** and **Reject** buttons.
+
+#### Custom Action Request
+
+When the user clicks **Approve**, the client sends a `threads.custom_action`:
+
+```json
+{
+  "type": "threads.custom_action",
+  "params": {
+    "item_id": "wdg_100daee1",
+    "action": {
+      "type": "approval",
+      "payload": {
+        "tool_name": "processPayment",
+        "tool_args": "{\"account_id\":\"1010\",\"amount\":100,...}",
+        "approved": true,
+        "call_id": "call_l4vKKGYun9DtHRZ9lChkF5TC",
+        "request_id": null
+      },
+      "handler": "server",
+      "loadingBehavior": "auto"
+    },
+    "thread_id": "thr_yyy"
+  }
+}
+```
+
+#### Checkpoint / Resume Mechanism
+
+The human-in-the-loop flow relies on the Agent Framework's checkpoint system:
+
+| Step | Component | Action |
+|---|---|---|
+| 1 | Payment Agent | Calls `processPayment` tool |
+| 2 | Agent Framework | Detects `approval_mode` on the MCP tool, saves a checkpoint, emits `function_approval_request` |
+| 3 | ChatKit Events Handler | Converts the approval request into a `client_widget` SSE event |
+| 4 | Client | Renders the approval UI |
+| 5 | Client | User approves → sends `threads.custom_action` |
+| 6 | ChatKit Server | Extracts `approved`, `call_id`, `request_id` from the action payload |
+| 7 | Orchestrator | Loads the saved checkpoint, produces `function_approval_response(approved=true)` |
+| 8 | Agent Framework | Resumes workflow execution from the checkpoint |
+| 9 | Payment Agent | Executes `processPayment` via the MCP server |
+| 10 | Server | Streams task events and final assistant confirmation message |
+
+#### LLM Variability
+
+The number of conversational turns before the approval widget appears may vary depending on the LLM's behavior. The agent may:
+- Ask for a payment method, then validate funds, then request confirmation (3 turns before approval)
+- Validate the card and request confirmation in a single response (2 turns before approval)
+- Skip textual confirmation entirely and trigger the approval widget right after card selection (1 turn before approval)
+
+Clients should be prepared to receive the `tool_approval_request` widget at any point after the user has provided sufficient payment details.
+
 

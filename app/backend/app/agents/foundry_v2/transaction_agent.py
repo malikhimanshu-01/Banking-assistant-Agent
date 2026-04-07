@@ -1,4 +1,4 @@
-from agent_framework.azure import AzureAIClient
+from agent_framework.foundry import FoundryChatClient
 from agent_framework import tool,Agent, MCPStreamableHTTPTool
 from app.common.user_profile_provider import UserProfileProvider
 
@@ -25,7 +25,7 @@ class TransactionHistoryAgent :
     name = "TransactionHistoryAgent"
     description = "This agent manages user transactions related information such as banking movements and payments history"
 
-    def __init__(self, azure_ai_client: AzureAIClient,
+    def __init__(self, azure_ai_client: FoundryChatClient,
                  account_mcp_server_url: str,
                  transaction_mcp_server_url: str,
                   ):

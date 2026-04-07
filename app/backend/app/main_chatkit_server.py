@@ -28,21 +28,23 @@ def create_app() -> FastAPI:
     logger = get_logger(__name__)
 
    
-    # Setup agent framework observability
-    if settings.AGENTS_TYPE == "foundry_v2" :
-        configure_azure_monitor(
-        connection_string=settings.APPLICATIONINSIGHTS_CONNECTION_STRING,
-        resource=create_resource(),
-        enable_live_metrics=True,
-        )
+    # Setup agent framework observability (skip when no connection string is configured, e.g. integration tests)
+    if settings.APPLICATIONINSIGHTS_CONNECTION_STRING:
+        if settings.AGENTS_TYPE == "foundry_v2":
+            configure_azure_monitor(
+                connection_string=settings.APPLICATIONINSIGHTS_CONNECTION_STRING,
+                resource=create_resource(),
+                enable_live_metrics=True,
+            )
+        else:
+            configure_azure_monitor(
+                connection_string=settings.APPLICATIONINSIGHTS_CONNECTION_STRING,
+                resource=create_resource(),
+                enable_live_metrics=True,
+            )
+            enable_instrumentation()
     else:
-        configure_azure_monitor(
-        connection_string=settings.APPLICATIONINSIGHTS_CONNECTION_STRING,
-        resource=create_resource(),
-        enable_live_metrics=True,
-        )
-        enable_instrumentation()
-        
+        logger.info("APPLICATIONINSIGHTS_CONNECTION_STRING not set – telemetry disabled")
     
     logger.info(f"Creating FastAPI application: {settings.APP_NAME}")
     

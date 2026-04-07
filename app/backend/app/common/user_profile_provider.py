@@ -9,7 +9,7 @@ Since OIDC is not implemented in this sample, a mock user profile is used.
 from datetime import datetime
 from typing import Any
 
-from agent_framework import AgentSession, BaseContextProvider, SessionContext
+from agent_framework import AgentSession, ContextProvider, SessionContext
 
 import logging
 
@@ -27,7 +27,7 @@ _MOCK_USER_PROFILE = {
 }
 
 
-class UserProfileProvider(BaseContextProvider):
+class UserProfileProvider(ContextProvider):
     """Injects the current user's email and timestamp into every agent run.
 
     In a real deployment the ``user_email`` would be resolved from the

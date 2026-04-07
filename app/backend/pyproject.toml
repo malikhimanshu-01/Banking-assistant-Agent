@@ -13,12 +13,13 @@ dependencies = [
     "azure-storage-blob==12.26.0",
     "azure-ai-documentintelligence==1.0.1",
     "dependency-injector==4.48.1",
-    "agent-framework-core==1.0.0b260212",
-    "agent-framework-azure-ai==1.0.0b260212",
-    "agent-framework-orchestrations==1.0.0b260212",
-    "agent-framework-devui==1.0.0b260212",
-    "agent-framework-chatkit==1.0.0b260212",
+    "agent-framework-core==1.0.0",
+    "agent-framework-openai==1.0.0",
+    "agent-framework-foundry==1.0.0",
+    "agent-framework-orchestrations==1.0.0b260402",
+    "agent-framework-chatkit==1.0.0b260402",
     "openai-chatkit==1.4.1",
+    "aiohttp==3.13.5",
     "azure-monitor-opentelemetry",
     "opentelemetry-semantic-conventions-ai==0.4.13"
 ]
@@ -33,12 +34,17 @@ prerelease = "if-necessary-or-explicit"
 [project.optional-dependencies]
 dev = [
     "pytest==8.4.1",
-    "pytest-asyncio==1.1.0",
+    "pytest-asyncio==0.26.0",
+    "asgi-lifespan",
+    "fastmcp",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
