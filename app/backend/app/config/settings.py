@@ -75,6 +75,10 @@ class Settings(BaseSettings):
     AZURE_STORAGE_ACCOUNT: str | None = Field(default=None)
     AZURE_STORAGE_CONTAINER: str | None = Field(default="content")
 
+    # Azure Cosmos DB for NoSQL (ChatKit metadata store)
+    AZURE_COSMOSDB_ENDPOINT: str | None = Field(default=None, description="Cosmos DB account endpoint (e.g. https://<account>.documents.azure.com:443/)")
+    AZURE_COSMOSDB_DATABASE: str = Field(default="chatkit", description="Cosmos DB database name")
+
     #MCP servers
     ACCOUNT_MCP_URL: str | None= Field(default=None,description="MCP server URL (required)", min_length=1)
     TRANSACTION_MCP_URL: str | None= Field(default=None,description="MCP server URL (required)", min_length=1)

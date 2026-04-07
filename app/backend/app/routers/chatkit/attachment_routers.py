@@ -19,20 +19,28 @@ elif settings.AGENTS_TYPE == "foundry_v2":
     from app.config.container_foundry_v2 import Container
 
 from app.helpers.blob_proxy import BlobStorageProxy
+from app.helpers.user_profile_helper import UserProfileHelper
 from .sqllite_store import SQLiteStore
+from .cosmosdb_store import CosmosDBStore
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-metadata_store = SQLiteStore()
-DEFAULT_USER_ID = "demo_user"
+# Fallback SQLite store used when CosmosDB is not configured (local dev / tests)
+_fallback_sqlite_store = SQLiteStore()
+
+
+def _resolve_store(cosmosdb_store: CosmosDBStore | None):
+    """Return the injected CosmosDB store when available, otherwise SQLite."""
+    return cosmosdb_store if cosmosdb_store is not None else _fallback_sqlite_store
 
 
 @router.post("/upload/{attachment_id}")
 @inject
 async def upload_file(attachment_id: str, 
                       file: UploadFile = File(...),
-                      blob_proxy: BlobStorageProxy = Depends(Provide[Container.blob_proxy])):
+                      blob_proxy: BlobStorageProxy = Depends(Provide[Container.blob_proxy]),
+                      cosmosdb_store: CosmosDBStore = Depends(Provide[Container.cosmosdb_store])):
     """Handle file upload for two-phase upload.
 
     The client POSTs the file bytes here after creating the attachment
@@ -50,13 +58,14 @@ async def upload_file(attachment_id: str,
         logger.info(f"Saved {len(contents)} bytes for {file.filename} as attachment {attachment_id} in blob storage")
 
         # Load the attachment metadata from the data store
-        attachment = await metadata_store.load_attachment(attachment_id, {"user_id": DEFAULT_USER_ID})
+        store = _resolve_store(cosmosdb_store)
+        attachment = await store.load_attachment(attachment_id, {"user_id": UserProfileHelper.get_user_id()})
 
-        # Clear the upload_url since upload is complete
-        attachment.upload_url = None
+        # Clear the upload_descriptor since upload is complete
+        attachment.upload_descriptor = None
 
         # Save the updated attachment back to the store
-        await metadata_store.save_attachment(attachment, {"user_id": DEFAULT_USER_ID})
+        await store.save_attachment(attachment, {"user_id": UserProfileHelper.get_user_id()})
 
         # Return the attachment metadata as JSON
         return JSONResponse(content=attachment.model_dump(mode="json"))
@@ -84,18 +93,9 @@ async def preview_image(attachment_id: str,
             return JSONResponse(status_code=404, content={"error": "File not found in blob storage for " + attachment_id})
 
     
-        # Determine media type from file extension or attachment metadata
-        # For simplicity, we'll try to load from the store
-        try:
-            attachment = await metadata_store.load_attachment(attachment_id, {"user_id": DEFAULT_USER_ID})
-            media_type = attachment.mime_type
-        except Exception:
-            # Default to binary if we can't determine
-            media_type = "application/octet-stream"
+        # Guess media type from the attachment_id extension; fall back to octet-stream
+        media_type = mimetypes.guess_type(attachment_id)[0] or "application/octet-stream"
 
-         # Create a BytesIO stream from the file bytes
-        file_stream = BytesIO(file_bytes)
-    
         return StreamingResponse(
             BytesIO(file_bytes),
             media_type=media_type

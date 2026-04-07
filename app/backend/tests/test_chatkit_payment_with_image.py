@@ -125,9 +125,9 @@ class TestChatkitPaymentWithImageFlow:
         assert attachment_id, "Attachment must have an id"
         assert attachment_meta["type"] == "image"
         assert attachment_meta["mime_type"] == "image/png"
-        assert attachment_meta["upload_url"] is not None, "upload_url should be set before upload"
+        assert attachment_meta["upload_descriptor"] is not None, "upload_descriptor should be set before upload"
         print(f"\n--- Attachment created: {attachment_id} ---")
-        print(f"  upload_url: {attachment_meta['upload_url']}")
+        print(f"  upload_descriptor: {attachment_meta['upload_descriptor']}")
 
         # ── Step 0.2: Upload the actual file ─────────────────────────
         file_bytes = INVOICE_IMAGE.read_bytes()
@@ -140,7 +140,7 @@ class TestChatkitPaymentWithImageFlow:
 
         upload_result = upload_response.json()
         assert upload_result["id"] == attachment_id
-        assert upload_result["upload_url"] is None, "upload_url should be cleared after upload"
+        assert upload_result.get("upload_descriptor") is None, "upload_descriptor should be cleared after upload"
         print(f"--- File uploaded: {len(file_bytes)} bytes ---")
 
         # ── Step 1: Create thread with attachment – "pay this bill" ──

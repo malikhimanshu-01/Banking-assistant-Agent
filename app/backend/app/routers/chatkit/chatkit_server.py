@@ -4,39 +4,21 @@ from typing import Any, AsyncIterator, Callable, AsyncGenerator
 from typing_extensions import TypeVar
 from agent_framework_chatkit import ThreadItemConverter
 from chatkit.actions import Action
-from chatkit.server import ChatKitServer,agents_sdk_user_agent_override
-from chatkit.errors import CustomStreamError, StreamError, ErrorCode
+from chatkit.server import ChatKitServer
+from chatkit.errors import ErrorCode
 from app.routers.chatkit._chatkit_events_handler import ChatKitEventsHandler
 from agent_framework.observability import get_tracer
 from app.config.settings import settings
 
 
 from chatkit.types import (
-    ThreadItemDoneEvent,
     ThreadMetadata,
     ThreadStreamEvent,
     UserMessageItem,
     WidgetItem,
     ErrorEvent,
-    ThreadItem,
-    ThreadItemRemovedEvent,
-    ThreadItemReplacedEvent,
-    ThreadUpdatedEvent,
-    HiddenContextItem,
-    StreamingReq,
-    ThreadsCreateReq,
-    ThreadsAddUserMessageReq,
-    ThreadsAddClientToolOutputReq,
-    ThreadsRetryAfterItemReq,
-    ThreadsCustomActionReq,
     Page,
-    ThreadCreatedEvent,
-    ClientToolCallItem,
-    Thread
-
 )
-
-from chatkit.widgets import Card
 
 from app.agents.azure_chat.handoff_orchestrator import HandoffOrchestrator
 
@@ -47,45 +29,46 @@ elif settings.AGENTS_TYPE == "foundry_v2":
     from app.agents.foundry_v2.handoff_orchestrator import HandoffOrchestrator
 else:
     raise ValueError(f"Unsupported AGENTS_TYPE: {settings.AGENTS_TYPE}")
-from app.common.chatkit.types import ClientWidgetItem, CustomThreadItemDoneEvent
 
-from .attachement_store import AttachmentMetadataStore
-
+from .attachment_handler import AttachmentHandler
+from .chatkit_customization import ChatKitClientWidgetMixin
 from .memory_store import MemoryStore
 from .sqllite_store import SQLiteStore
+from .cosmosdb_store import CosmosDBStore
 import logging
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_USER_ID = "demo_user"
 
 
-
-class BankingAssistantChatKitServer(ChatKitServer[dict[str, Any]]):
+class BankingAssistantChatKitServer(ChatKitClientWidgetMixin, ChatKitServer[dict[str, Any]]):
     """ChatKit server implementation using Agent Framework.
 
     This server integrates Agent Framework agents with ChatKit's server protocol,
     handling message conversion, agent execution, and response streaming.
     """
  
-    # Use a SQLite-based store on disk for thread and attachment metadata.
-    metadata_store = SQLiteStore()
+    # Fallback SQLite store used when no CosmosDB endpoint is configured (local dev / tests).
+    _fallback_sqlite_store = SQLiteStore()
  
    
 
-    def __init__(self, handoff_orchestrator: HandoffOrchestrator, origin: str  | None = None):
+    def __init__(self, handoff_orchestrator: HandoffOrchestrator, origin: str | None = None, cosmosdb_store: CosmosDBStore | None = None):
         
+        # Use CosmosDB store when available, otherwise fall back to local SQLite.
+        metadata_store = cosmosdb_store if cosmosdb_store is not None else self._fallback_sqlite_store
+
         #need to use origin to set base url for attachment store
         if origin is None:
             origin = "http://localhost"
             logger.warning("Origin header is missing; defaulting base_url for attachment to http://localhost")
        
-        attachment_metadata_store = AttachmentMetadataStore(
+        attachment_metadata_handler = AttachmentHandler(
         base_url=origin,
-        metadata_store=BankingAssistantChatKitServer.metadata_store,
+        metadata_store=metadata_store,
          )
        
-        super().__init__(BankingAssistantChatKitServer.metadata_store, attachment_metadata_store)
+        super().__init__(metadata_store, attachment_metadata_handler)
     
         # Create ThreadItemConverter with attachment data fetcher
         self.converter = ThreadItemConverter()
@@ -219,245 +202,4 @@ class BankingAssistantChatKitServer(ChatKitServer[dict[str, Any]]):
             except Exception as e:
                 logger.error(f"Error processing message for thread {thread.id}: {e}", exc_info=True)
                 yield ErrorEvent(message = f"An error occurred while processing your message for thread {thread.id}")
-
-
-########################## ChatKit Server Customization ##############################
-
-    #Need to customize this to support client widget rendering
-    async def _process_events(
-            self,
-            thread: ThreadMetadata,
-            context: dict[str, Any],
-            stream: Callable[[], AsyncIterator[ThreadStreamEvent]],
-        ) -> AsyncIterator[ThreadStreamEvent]:
-            await asyncio.sleep(0)  # allow the response to start streaming
-
-            last_thread = thread.model_copy(deep=True)
-
-            try:
-                with agents_sdk_user_agent_override():
-                    async for event in stream():
-                        match event:
-                            case ThreadItemDoneEvent() | CustomThreadItemDoneEvent():
-                                await self.store.add_thread_item(
-                                    thread.id, event.item, context=context # type: ignore
-                                )
-                            case ThreadItemRemovedEvent():
-                                await self.store.delete_thread_item(
-                                    thread.id, event.item_id, context=context # type: ignore
-                                )
-                            case ThreadItemReplacedEvent():
-                                await self.store.save_item(
-                                    thread.id, event.item, context=context # type: ignore
-                                )
-
-                        # special case - don't send hidden context items back to the client
-                        should_swallow_event = isinstance(
-                            event, ThreadItemDoneEvent
-                        ) and isinstance(event.item, HiddenContextItem)
-
-                        if not should_swallow_event:
-                            yield event
-
-                        # in case user updated the thread while streaming
-                        if thread != last_thread:
-                            last_thread = thread.model_copy(deep=True)
-                            await self.store.save_thread(thread, context=context) # type: ignore
-                            yield ThreadUpdatedEvent(
-                                thread=self._to_thread_response(thread)
-                            )
-                    # in case user updated the thread while streaming
-                    if thread != last_thread:
-                        last_thread = thread.model_copy(deep=True)
-                        await self.store.save_thread(thread, context=context) # type: ignore
-                        yield ThreadUpdatedEvent(thread=self._to_thread_response(thread))
-            except CustomStreamError as e:
-                yield ErrorEvent(
-                    code="custom",
-                    message=e.message,
-                    allow_retry=e.allow_retry,
-                )
-            except StreamError as e:
-                yield ErrorEvent(
-                    code=e.code,
-                    allow_retry=e.allow_retry,
-                )
-            except Exception as e:
-                yield ErrorEvent(
-                    code=ErrorCode.STREAM_ERROR,
-                    allow_retry=True,
-                )
-                logger.exception(e)
-
-            if thread != last_thread:
-                # in case user updated the thread at the end of the stream
-                await self.store.save_thread(thread, context=context) # type: ignore
-                yield ThreadUpdatedEvent(thread=self._to_thread_response(thread))
-
-
-
-    async def _process_streaming_impl(
-        self, request: StreamingReq, context: dict[str, Any]
-    ) -> AsyncGenerator[ThreadStreamEvent, None]:
-        match request:
-            case ThreadsCreateReq():
-                thread = Thread(
-                    id=self.store.generate_thread_id(context), # type: ignore
-                    created_at=datetime.now(),
-                    items=Page(), # type: ignore
-                )
-                await self.store.save_thread(
-                    ThreadMetadata(**thread.model_dump()),
-                    context=context,
-                )
-                yield ThreadCreatedEvent(thread=self._to_thread_response(thread))
-                user_message = await self._build_user_message_item(
-                    request.params.input, thread, context
-                )
-                async for event in self._process_new_thread_item_respond(
-                    thread,
-                    user_message,
-                    context,
-                ):
-                    yield event
-
-            case ThreadsAddUserMessageReq():
-                thread = await self.store.load_thread(
-                    request.params.thread_id, context=context
-                )
-                user_message = await self._build_user_message_item(
-                    request.params.input, thread, context
-                )
-                async for event in self._process_new_thread_item_respond(
-                    thread,
-                    user_message,
-                    context,
-                ):
-                    yield event
-
-            case ThreadsAddClientToolOutputReq():
-                thread = await self.store.load_thread(
-                    request.params.thread_id, context=context
-                )
-                items = await self.store.load_thread_items(
-                    thread.id, None, 1, "desc", context
-                )
-                tool_call = next(
-                    (
-                        item
-                        for item in items.data
-                        if isinstance(item, ClientToolCallItem)
-                        and item.status == "pending"
-                    ),
-                    None,
-                )
-                if not tool_call:
-                    raise ValueError(
-                        f"Last thread item in {thread.id} was not a ClientToolCallItem"
-                    )
-
-                tool_call.output = request.params.result
-                tool_call.status = "completed"
-
-                await self.store.save_item(thread.id, tool_call, context=context)
-
-                # Safety against dangling pending tool calls if there are
-                # multiple in a row, which should be impossible, and
-                # integrations should ultimately filter out pending tool calls
-                # when creating input response messages.
-                await self._cleanup_pending_client_tool_call(thread, context)
-
-                async for event in self._process_events(
-                    thread,
-                    context,
-                    lambda: self.respond(thread, None, context),
-                ):
-                    yield event
-
-            case ThreadsRetryAfterItemReq():
-                thread_metadata = await self.store.load_thread(
-                    request.params.thread_id, context=context
-                )
-
-                # Collect items to remove (all items after the user message)
-                items_to_remove: list[ThreadItem] = []
-                user_message_item = None
-
-                async for item in self._paginate_thread_items_reverse(
-                    request.params.thread_id, context
-                ):
-                    if item.id == request.params.item_id:
-                        if not isinstance(item, UserMessageItem):
-                            raise ValueError(
-                                f"Item {request.params.item_id} is not a user message"
-                            )
-                        user_message_item = item
-                        break
-                    items_to_remove.append(item)
-
-                if user_message_item:
-                    for item in items_to_remove:
-                        await self.store.delete_thread_item(
-                            request.params.thread_id, item.id, context=context
-                        )
-                    async for event in self._process_events(
-                        thread_metadata,
-                        context,
-                        lambda: self.respond(
-                            thread_metadata,
-                            user_message_item,
-                            context,
-                        ),
-                    ):
-                        yield event
-            case ThreadsCustomActionReq():
-                thread_metadata = await self.store.load_thread(
-                    request.params.thread_id, context=context
-                )
-
-                item = {}
-                if request.params.item_id:
-                    item = await self.store.load_item(
-                        request.params.thread_id,
-                        request.params.item_id,
-                        context=context,
-                    )
-
-                if item and not isinstance(item, WidgetItem) and not isinstance(item, ClientWidgetItem):
-                    # shouldn't happen if the caller is using the API correctly.
-                    yield ErrorEvent(
-                        code=ErrorCode.STREAM_ERROR,
-                        message=f"Item {request.params.item_id} is not neither a widget item nor a client widget item",
-                        allow_retry=False,
-                    )
-                    return
-
-                #To bypass type checking we create a fake WidgetItem from ClientWidgetItem.
-                fake_widget_root = Card( children=[])
-                fake_widget_item: WidgetItem | None = None
-               
-                if isinstance(item, ClientWidgetItem):
-                    fake_widget_item = WidgetItem(
-                        id=item.id,
-                        thread_id=item.thread_id,
-                        created_at=item.created_at,
-                        widget = fake_widget_root
-                    )
-                elif isinstance(item, WidgetItem):
-                    fake_widget_item = item
-
-                async for event in self._process_events(
-                    thread_metadata,
-                    context,
-                    lambda: self.action(
-                        thread_metadata,
-                        request.params.action,
-                        fake_widget_item,
-                        context,
-                    ),
-                ):
-                    yield event
-
-            case _:
-                assert_never(request)
 

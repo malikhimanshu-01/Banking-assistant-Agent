@@ -10,21 +10,18 @@ cloud storage like S3, Azure Blob Storage, or Google Cloud Storage.
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from chatkit.store import AttachmentStore
-from chatkit.types import Attachment, AttachmentCreateParams, FileAttachment, ImageAttachment
+from chatkit.store import AttachmentStore, Store
+from chatkit.types import Attachment, AttachmentCreateParams, AttachmentUploadDescriptor, FileAttachment, ImageAttachment
 from pydantic import AnyUrl
 
 
-from .sqllite_store import SQLiteStore
-
-
-class AttachmentMetadataStore(AttachmentStore[dict[str, Any]]):
+class AttachmentHandler(AttachmentStore[dict[str, Any]]):
     
 
     def __init__(
         self,
         base_url: str = "http://localhost:8001",
-        metadata_store: SQLiteStore | None = None
+        metadata_store: Store[dict[str, Any]] | None = None
     ):
         """Initialize the file-based attachment store.
 
@@ -61,7 +58,7 @@ class AttachmentMetadataStore(AttachmentStore[dict[str, Any]]):
                 type="image",
                 mime_type=input.mime_type,
                 name=input.name,
-                upload_url=AnyUrl(upload_url),
+                upload_descriptor=AttachmentUploadDescriptor(url=AnyUrl(upload_url), method="POST"),
                 preview_url=AnyUrl(preview_url),
             )
         else:
@@ -71,12 +68,8 @@ class AttachmentMetadataStore(AttachmentStore[dict[str, Any]]):
                 type="file",
                 mime_type=input.mime_type,
                 name=input.name,
-                upload_url=AnyUrl(upload_url),
+                upload_descriptor=AttachmentUploadDescriptor(url=AnyUrl(upload_url), method="POST"),
             )
-
-        # Save attachment metadata to data store so it's available during upload
-        if self.metadata_store is not None:
-            await self.metadata_store.save_attachment(attachment, context)
 
         return attachment
 

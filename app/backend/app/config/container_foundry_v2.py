@@ -11,6 +11,19 @@ from app.helpers.blob_proxy import BlobStorageProxy
 from app.tools.document_intelligence_scanner import DocumentIntelligenceInvoiceScanHelper
 from app.config.azure_credential import get_azure_credential, get_async_azure_credential
 from app.config.settings import settings
+from app.routers.chatkit.cosmosdb_store import CosmosDBStore
+
+
+def _create_cosmosdb_store() -> CosmosDBStore | None:
+    """Create a CosmosDB store only when an endpoint is configured."""
+    if not settings.AZURE_COSMOSDB_ENDPOINT:
+        return None
+    from azure.cosmos.aio import CosmosClient as AsyncCosmosClient
+    client = AsyncCosmosClient(
+        url=settings.AZURE_COSMOSDB_ENDPOINT,
+        credential=get_async_azure_credential(),
+    )
+    return CosmosDBStore(cosmos_client=client, database_name=settings.AZURE_COSMOSDB_DATABASE)
 
 
 #Azure AI Foundry V2 agents for ChatKit protocol
@@ -23,6 +36,9 @@ from app.agents.foundry_v2.payment_agent import PaymentAgent as PaymentAgentChat
 class Container(containers.DeclarativeContainer):
     """IoC container for application dependencies."""
    
+    # Cosmos DB ChatKit metadata store (None when AZURE_COSMOSDB_ENDPOINT is not set)
+    cosmosdb_store = providers.Singleton(_create_cosmosdb_store)
+
     # Helpers
     blob_service_client = providers.Singleton(
         BlobServiceClient,

@@ -50,12 +50,18 @@ export interface ThreadDetailResponse {
 // ============================================================================
 export type Attachment = FileAttachment | ImageAttachment;
 
+export interface AttachmentUploadDescriptor {
+  url: string;
+  method: "POST" | "PUT";
+  headers?: Record<string, string>;
+}
+
 export interface FileAttachment {
   type: "file";
   id: string;
   name: string;
   mime_type: string;
-  upload_url?: string | null;
+  upload_descriptor?: AttachmentUploadDescriptor | null;
 }
 
 export interface ImageAttachment {
@@ -63,7 +69,7 @@ export interface ImageAttachment {
   id: string;
   name: string;
   mime_type: string;
-  upload_url?: string | null;
+  upload_descriptor?: AttachmentUploadDescriptor | null;
   preview_url: string;
 }
 

@@ -1,6 +1,6 @@
 from agent_framework.foundry import FoundryChatClient
 from agent_framework import tool,Agent, MCPStreamableHTTPTool
-from app.common.user_profile_provider import UserProfileProvider
+from app.helpers.user_profile_provider import UserProfileProvider
 
 import logging
 

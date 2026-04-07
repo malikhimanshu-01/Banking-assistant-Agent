@@ -1,9 +1,8 @@
 """User profile context provider for agent framework.
 
 Provides logged user details and current timestamp to agents via the
-Agent Framework context provider mechanism. In production this would
-extract user information from an OpenID Connect token / claims.
-Since OIDC is not implemented in this sample, a mock user profile is used.
+Agent Framework context provider mechanism. Delegates user identity
+resolution to ``UserProfileHelper``.
 """
 
 from datetime import datetime
@@ -11,29 +10,18 @@ from typing import Any
 
 from agent_framework import AgentSession, ContextProvider, SessionContext
 
+from app.helpers.user_profile_helper import UserProfileHelper
+
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Mock user profile – simulates data that would come from OIDC claims
-# ---------------------------------------------------------------------------
-
-_MOCK_USER_PROFILE = {
-    "email": "bob.user@contoso.com",
-    "name": "Bob User",
-    "roles": ["customer"],
-}
-
-
 class UserProfileProvider(ContextProvider):
     """Injects the current user's email and timestamp into every agent run.
 
-    In a real deployment the ``user_email`` would be resolved from the
-    authenticated user's OIDC ``id_token`` claims (e.g. the ``email`` or
-    ``preferred_username`` claim).  Because authentication is not wired up
-    in this sample we fall back to a mock profile.
+    User identity is resolved via ``UserProfileHelper`` which in production
+    would extract claims from an OIDC token.
     """
 
     DEFAULT_SOURCE_ID = "user_profile_provider"
@@ -47,14 +35,8 @@ class UserProfileProvider(ContextProvider):
 
     @staticmethod
     def _get_logged_user_email() -> str:
-        """Return the email of the currently logged-in user.
-
-        TODO: Replace this mock with actual OIDC claim extraction once
-        OpenID Connect authentication is integrated.
-        Example with FastAPI / Starlette:
-            user_email = request.state.user.email
-        """
-        return _MOCK_USER_PROFILE["email"]
+        """Return the email of the currently logged-in user."""
+        return UserProfileHelper.get_user_email()
 
     @staticmethod
     def _get_current_timestamp() -> str:

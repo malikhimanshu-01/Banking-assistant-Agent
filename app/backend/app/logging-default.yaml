@@ -40,6 +40,10 @@ loggers:
     level: WARNING
     handlers: [console]
     propagate: false
+  azure.cosmos._cosmos_http_logging_policy:
+    level: WARNING
+    handlers: [console]
+    propagate: false
 
   # OpenAI client - set to DEBUG for detailed logging
   openai._base_client:

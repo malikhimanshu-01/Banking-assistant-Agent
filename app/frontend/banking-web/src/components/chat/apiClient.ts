@@ -12,11 +12,17 @@ export interface AttachmentsCreateRequest {
   metadata?: Record<string, unknown>;
 }
 
+export interface AttachmentUploadDescriptor {
+  url: string;
+  method: "POST" | "PUT";
+  headers?: Record<string, string>;
+}
+
 export interface AttachmentsCreateResponse {
   id: string;
   name: string;
   mime_type: string;
-  upload_url: string;
+  upload_descriptor: AttachmentUploadDescriptor;
   type: "file" | "image";
   preview_url?: string;
 }
@@ -163,7 +169,7 @@ export class ChatApiClient {
     );
 
     // Phase 2: Upload file bytes
-    await this.uploadAttachmentBytes(attachment.upload_url, file, onProgress);
+    await this.uploadAttachmentBytes(attachment.upload_descriptor.url, file, onProgress);
 
     return attachment;
   }

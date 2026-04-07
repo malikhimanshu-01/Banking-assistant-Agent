@@ -20,6 +20,8 @@ param storageResourceGroupLocation string = location
 param storageContainerName string = 'content'
 param storageSkuName string // Set in main.parameters.json
 
+param cosmosDbAccountName string = ''
+
 @description('The Azure AI Foundry resource group name. If ommited will be the same as the main resource group')
 param foundryResourceGroupName string = ''
 @description('The Azure AI Foundry resource name. If ommited will be generated')
@@ -216,7 +218,14 @@ module backend 'app/backend.bicep' = {
         name: 'AGENTS_TYPE'
         value: agentsType
       }
-     
+      {
+        name: 'AZURE_COSMOSDB_ENDPOINT'
+        value: cosmosDb.outputs.endpoint
+      }
+      {
+        name: 'AZURE_COSMOSDB_DATABASE'
+        value: cosmosDb.outputs.databaseName
+      }
     ]
   }
 }
@@ -402,6 +411,16 @@ module storage 'shared/storage/storage-account.bicep' = {
 }
 
 
+// Azure Cosmos DB for NoSQL – ChatKit metadata store
+module cosmosDb 'shared/storage/cosmosdb.bicep' = {
+  name: 'cosmosdb'
+  scope: resourceGroup
+  params: {
+    name: !empty(cosmosDbAccountName) ? cosmosDbAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    location: location
+    tags: tags
+  }
+}
 
 
 // SYSTEM IDENTITIES
@@ -446,6 +465,16 @@ module documentIntelligenceRoleBackend 'shared/security/role.bicep' = {
   }
 }
 
+// Cosmos DB Built-in Data Contributor (00000000-0000-0000-0000-000000000002) for backend managed identity
+module cosmosDbRoleBackend 'shared/security/cosmosdb-role.bicep' = {
+  scope: resourceGroup
+  name: 'cosmosdb-role-backend'
+  params: {
+    cosmosDbAccountName: cosmosDb.outputs.name
+    principalId: backend.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+  }
+}
+
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_RESOURCE_GROUP string = resourceGroup.name
@@ -472,6 +501,8 @@ output AZURE_STORAGE_ACCOUNT string = storage.outputs.name
 output AZURE_STORAGE_CONTAINER string = storageContainerName
 output AZURE_STORAGE_RESOURCE_GROUP string = storageResourceGroup.name
 output AGENTS_TYPE string = agentsType
+output AZURE_COSMOSDB_ENDPOINT string = cosmosDb.outputs.endpoint
+output AZURE_COSMOSDB_DATABASE string = cosmosDb.outputs.databaseName
 
 
 

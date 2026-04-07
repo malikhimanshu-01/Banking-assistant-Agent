@@ -19,13 +19,13 @@ else:
     raise ValueError(f"Unsupported AGENTS_TYPE: {settings.AGENTS_TYPE}")
 
 from app.routers.chatkit.chatkit_server import BankingAssistantChatKitServer
+from app.routers.chatkit.cosmosdb_store import CosmosDBStore
+from app.helpers.user_profile_helper import UserProfileHelper
 
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-DEFAULT_USER_ID = "demo_user"
 
 
 
@@ -60,7 +60,11 @@ async def wrap_stream_with_error_handling(streaming_result):
 
 @router.post("/chatkit")
 @inject
-async def chatkit_endpoint(request: Request, handoff_orchestrator: HandoffOrchestrator = Depends(Provide[Container.handoff_orchestrator_chatkit])):
+async def chatkit_endpoint(
+    request: Request,
+    handoff_orchestrator: HandoffOrchestrator = Depends(Provide[Container.handoff_orchestrator_chatkit]),
+    cosmosdb_store: CosmosDBStore = Depends(Provide[Container.cosmosdb_store]),
+):
     """Main ChatKit endpoint that handles all ChatKit requests.
 
     This endpoint follows the ChatKit server protocol and handles both
@@ -72,10 +76,13 @@ async def chatkit_endpoint(request: Request, handoff_orchestrator: HandoffOrches
 
     request_body = await request.body()
 
-    # Create context following the working examples pattern
-    context = {"request": request}
+    # Create context with user identity for store partition isolation
+    context = {
+        "request": request,
+        "user_id": UserProfileHelper.get_user_id(),
+    }
     
-    chatkit_server = BankingAssistantChatKitServer(handoff_orchestrator=handoff_orchestrator,origin=origin)
+    chatkit_server = BankingAssistantChatKitServer(handoff_orchestrator=handoff_orchestrator, origin=origin, cosmosdb_store=cosmosdb_store)
     try:
         # Process the request using ChatKit server
         result = await chatkit_server.process(request_body, context)

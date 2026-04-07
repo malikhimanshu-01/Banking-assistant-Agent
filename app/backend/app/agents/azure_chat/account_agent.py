@@ -1,6 +1,6 @@
 from agent_framework.openai import OpenAIChatCompletionClient
 from agent_framework import Agent, MCPStreamableHTTPTool
-from app.common.user_profile_provider import UserProfileProvider
+from app.helpers.user_profile_provider import UserProfileProvider
 
 import logging
 

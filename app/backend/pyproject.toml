@@ -12,13 +12,14 @@ dependencies = [
     "azure-identity==1.24.0",
     "azure-storage-blob==12.26.0",
     "azure-ai-documentintelligence==1.0.1",
+    "azure-cosmos==4.15.0",
     "dependency-injector==4.48.1",
     "agent-framework-core==1.0.0",
     "agent-framework-openai==1.0.0",
     "agent-framework-foundry==1.0.0",
     "agent-framework-orchestrations==1.0.0b260402",
     "agent-framework-chatkit==1.0.0b260402",
-    "openai-chatkit==1.4.1",
+    "openai-chatkit==1.6.3",
     "aiohttp==3.13.5",
     "azure-monitor-opentelemetry",
     "opentelemetry-semantic-conventions-ai==0.4.13"
@@ -45,6 +46,7 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_test_loop_scope = "session"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

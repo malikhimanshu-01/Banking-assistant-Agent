@@ -342,6 +342,19 @@ wheels = [
 ]
 
 [[package]]
+name = "azure-cosmos"
+version = "4.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c8/a3/0474e622bf9676e3206d61269461ed16a05958363c254ea3b15af16219b2/azure_cosmos-4.15.0.tar.gz", hash = "sha256:be1cf49837c197d9da880ec47fe020a24d679075b89e0e1e2aca8d376b3a5a24", size = 2100744, upload-time = "2026-02-23T16:01:52.293Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/5f/b6e3d3ae16fa121fdc17e62447800d378b7e716cd6103c3650977a6c4618/azure_cosmos-4.15.0-py3-none-any.whl", hash = "sha256:83c1da7386bcd0df9a15c52116cc35012225d8a72d4f1379938b83ea5eb19fff", size = 424870, upload-time = "2026-02-23T16:01:54.514Z" },
+]
+
+[[package]]
 name = "azure-identity"
 version = "1.24.0"
 source = { registry = "https://pypi.org/simple" }
@@ -433,6 +446,7 @@ dependencies = [
     { name = "agent-framework-orchestrations" },
     { name = "aiohttp" },
     { name = "azure-ai-documentintelligence" },
+    { name = "azure-cosmos" },
     { name = "azure-identity" },
     { name = "azure-monitor-opentelemetry" },
     { name = "azure-storage-blob" },
@@ -462,6 +476,7 @@ requires-dist = [
     { name = "aiohttp", specifier = "==3.13.5" },
     { name = "asgi-lifespan", marker = "extra == 'dev'" },
     { name = "azure-ai-documentintelligence", specifier = "==1.0.1" },
+    { name = "azure-cosmos", specifier = "==4.15.0" },
     { name = "azure-identity", specifier = "==1.24.0" },
     { name = "azure-monitor-opentelemetry" },
     { name = "azure-storage-blob", specifier = "==12.26.0" },
@@ -469,7 +484,7 @@ requires-dist = [
     { name = "fastapi", extras = ["all"], specifier = "==0.116.1" },
     { name = "fastmcp", marker = "extra == 'dev'" },
     { name = "httpx", specifier = "==0.28.1" },
-    { name = "openai-chatkit", specifier = "==1.4.1" },
+    { name = "openai-chatkit", specifier = "==1.6.3" },
     { name = "opentelemetry-semantic-conventions-ai", specifier = "==0.4.13" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==8.4.1" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = "==0.26.0" },
@@ -1839,7 +1854,7 @@ wheels = [
 
 [[package]]
 name = "openai-chatkit"
-version = "1.4.1"
+version = "1.6.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jinja2" },
@@ -1848,9 +1863,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/44/f6dc99c00343bc4b2e3a618d0f4d90ede105c297a2dc82e1eb8e39658a52/openai_chatkit-1.4.1.tar.gz", hash = "sha256:871212dce80b4c774dbb10e2c2ee11ecd13a2c8d86e95c791110a1f6c860138d", size = 57954, upload-time = "2025-12-18T23:44:05.117Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/05/46/b15fd77f7df12a2cabd8475de6226ce04d1cec7b283b21e8f0f52edc63a7/openai_chatkit-1.6.3.tar.gz", hash = "sha256:f16e347f39c376a78dddb5ceaf5398a4bb700c0145bfa7cb899d65135972956e", size = 61822, upload-time = "2026-03-04T19:30:19.564Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/d7/2ba7198ebfa2a31b35b5253827f15290479b4377d4518b78173621467af4/openai_chatkit-1.4.1-py3-none-any.whl", hash = "sha256:b9e4d3c8ba708ad66a3ba577a04c1e154b1a27ab454ee312c90d886b7c61f34c", size = 41150, upload-time = "2025-12-18T23:44:03.784Z" },
+    { url = "https://files.pythonhosted.org/packages/52/5e/e06a4bec431083c282dea5729b0947b940900a4014216835182048078877/openai_chatkit-1.6.3-py3-none-any.whl", hash = "sha256:642ecdf810eda3619964f316e393f252741130a5500dc3a357d501f8657b3941", size = 42578, upload-time = "2026-03-04T19:30:18.314Z" },
 ]
 
 [[package]]
