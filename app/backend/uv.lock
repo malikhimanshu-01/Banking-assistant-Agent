@@ -401,6 +401,7 @@ dependencies = [
     { name = "fastapi", extra = ["all"] },
     { name = "httpx" },
     { name = "openai-chatkit" },
+    { name = "opentelemetry-semantic-conventions-ai" },
     { name = "uvicorn" },
 ]
 
@@ -425,6 +426,7 @@ requires-dist = [
     { name = "fastapi", extras = ["all"], specifier = "==0.116.1" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "openai-chatkit", specifier = "==1.4.1" },
+    { name = "opentelemetry-semantic-conventions-ai", specifier = "==0.4.13" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==8.4.1" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = "==1.1.0" },
     { name = "uvicorn", specifier = "==0.35.0" },
