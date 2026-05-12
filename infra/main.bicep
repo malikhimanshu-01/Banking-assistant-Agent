@@ -103,8 +103,9 @@ param paymentAppExists bool = false
 param transactionAppExists bool = false
 
 
+var resourceToken = environmentName
 var abbrs = loadJsonContent('shared/abbreviations.json')
-var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+//var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName, 'assignedTo': environmentName }
 
 // Organize resources in a resource group
