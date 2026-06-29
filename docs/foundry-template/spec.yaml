@@ -10,7 +10,7 @@ languages:
  - Python
 author: Microsoft
 models:
- - gpt-4.1
+ - gpt-5.4
  - gpt-4o
 services:
  - "Microsoft Foundry"

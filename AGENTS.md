@@ -13,7 +13,7 @@
   - `agent-framework-azure-ai`: Azure AI integration for agents
   - `agent-framework-chatkit`: ChatKit protocol implementation for agent-to-chat communication
 - **OpenAI ChatKit 1.4.1**: Client-side chat protocol implementation
-- **Azure OpenAI (GPT-4.1)**: Large language model for agent intelligence
+- **Azure OpenAI (GPT-5.4)**: Large language model for agent intelligence
 
 #### Azure Services Integration
 - **Azure Identity 1.24.0**: Authentication and authorization with Azure services
@@ -318,7 +318,7 @@ Bicep templates for Azure resource provisioning.
 
 **Key Infrastructure Components:**
 - **Container Apps Environment**: Serverless container hosting
-- **Azure AI Foundry**: GPT-4.1 model deployment
+- **Azure AI Foundry**: GPT-5.4 model deployment
 - **Cognitive Services**: Document Intelligence for OCR
 - **Application Insights**: Distributed tracing and monitoring
 - **Container Registry**: Docker image storage

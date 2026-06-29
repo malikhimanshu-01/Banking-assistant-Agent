@@ -17,7 +17,7 @@ azd provision
 ```
 
 This command will:
-- Create Azure OpenAI service with GPT-4.1 deployment
+- Create Azure OpenAI service with GPT-5.4 deployment
 - Set up Azure Document Intelligence for invoice scanning
 - Configure Azure Storage Account for document storage
 - Deploy Application Insights for monitoring

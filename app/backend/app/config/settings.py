@@ -61,15 +61,15 @@ class Settings(BaseSettings):
     
     # Azure AI Foundry v1 configuration
     FOUNDRY_PROJECT_ENDPOINT: str | None = Field(default=None)
-    FOUNDRY_MODEL_DEPLOYMENT_NAME: str = Field(default="gpt-4o")
+    FOUNDRY_MODEL_DEPLOYMENT_NAME: str = Field(default="gpt-5.4")
     
     # Azure AI Foundry v2 configuration
     AZURE_AI_PROJECT_ENDPOINT: str | None = Field(default=None)
-    AZURE_AI_MODEL_DEPLOYMENT_NAME: str = Field(default="gpt-4.1")
+    AZURE_AI_MODEL_DEPLOYMENT_NAME: str = Field(default="gpt-5.4")
 
     #Azure OpenAI Chat configuration
     AZURE_OPENAI_ENDPOINT: str | None = Field(default=None)
-    AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: str = Field(default="gpt-4o")
+    AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: str = Field(default="gpt-5.4")
 
     # Azure services
     AZURE_STORAGE_ACCOUNT: str | None = Field(default=None)

@@ -151,7 +151,7 @@ Today, the banking assistant agents (`account_agent`, `payment_agent`, `transact
 |------------|------|-------|
 | Azure Blob Storage | Infrastructure | Already provisioned in project (`app/backend/config/`) — requires a dedicated container for knowledge documents |
 | Azure AI Search | Infrastructure | New service — must be provisioned via Bicep |
-| Azure OpenAI (GPT-4.1) | Infrastructure | Already provisioned — used for embedding generation and response generation |
+| Azure OpenAI (GPT-5.4) | Infrastructure | Already provisioned — used for embedding generation and response generation |
 | Ingestion Pipeline | Code | New component — event-driven function triggered by Blob Storage uploads |
 | `handoff_orchestrator` | Code | Must be extended to add RAG agent handoff |
 | Banking knowledge corpus (PDF files) | Content | Must be provided by the business/operations team |

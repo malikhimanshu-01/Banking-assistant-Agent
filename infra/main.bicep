@@ -30,7 +30,7 @@ param foundryResourceName string = ''
 param aiProjectName string = ''
 
 
-// Look for the desired model in availability table. Default model is gpt-4o-mini:
+// Look for the desired model in availability table. Default model is gpt-5.4:
 // https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability
 @description('Location for the Foundry resource group')
 @allowed([
@@ -68,10 +68,10 @@ param customFoundryResourceGroupLocation string = ''
 @description('Array of models to deploy')
 param models array = [
   {
-    deploymentName: 'gpt-4.1'
-    name: 'gpt-4.1'
+    deploymentName: 'gpt-5.4'
+    name: 'gpt-5.4'
     format: 'OpenAI'
-    version: '2025-04-14'
+    version: '2026-03-05'
     skuName: 'GlobalStandard'
     capacity: 120
   }
@@ -150,7 +150,7 @@ module containerApps 'shared/host/container-apps.bicep' = {
     location: location
     tags: tags
     containerAppsEnvironmentName: !empty(containerAppsEnvironmentName) ? containerAppsEnvironmentName : '${abbrs.appManagedEnvironments}${resourceToken}'
-    containerRegistryName: !empty(containerRegistryName) ? containerRegistryName : '${abbrs.containerRegistryRegistries}${resourceToken}'
+    containerRegistryName: !empty(containerRegistryName) ? containerRegistryName : toLower('${abbrs.containerRegistryRegistries}${resourceToken}')
     logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
     applicationInsightsName: monitoring.outputs.applicationInsightsName
   }
@@ -161,7 +161,7 @@ module backend 'app/backend.bicep' = {
   name: 'backend'
   scope: resourceGroup
   params: {
-    name: !empty(backendContainerAppName) ? backendContainerAppName : '${abbrs.appContainerApps}backend-${resourceToken}'
+    name: !empty(backendContainerAppName) ? backendContainerAppName : toLower('${abbrs.appContainerApps}backend-${resourceToken}')
     location: location
     tags: tags
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}backend-${resourceToken}'
@@ -236,7 +236,7 @@ module account 'app/account.bicep' = {
   name: 'account'
   scope: resourceGroup
   params: {
-    name: !empty(accountContainerAppName) ? accountContainerAppName : '${abbrs.appContainerApps}account-${resourceToken}'
+    name: !empty(accountContainerAppName) ? accountContainerAppName : toLower('${abbrs.appContainerApps}account-${resourceToken}')
     location: location
     tags: tags
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}account-${resourceToken}'
@@ -254,7 +254,7 @@ module transaction 'app/transaction.bicep' = {
   name: 'transaction'
   scope: resourceGroup
   params: {
-    name: !empty(transactionContainerAppName) ? transactionContainerAppName : '${abbrs.appContainerApps}transaction-${resourceToken}'
+    name: !empty(transactionContainerAppName) ? transactionContainerAppName : toLower('${abbrs.appContainerApps}transaction-${resourceToken}')
     location: location
     tags: tags
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}transaction-${resourceToken}'
@@ -272,7 +272,7 @@ module payment 'app/payment.bicep' = {
   name: 'payment'
   scope: resourceGroup
   params: {
-    name: !empty(paymentContainerAppName) ? paymentContainerAppName : '${abbrs.appContainerApps}payment-${resourceToken}'
+    name: !empty(paymentContainerAppName) ? paymentContainerAppName : toLower('${abbrs.appContainerApps}payment-${resourceToken}')
     location: location
     tags: tags
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}payment-${resourceToken}'
@@ -296,7 +296,7 @@ module web 'app/web.bicep' = {
   name: 'web'
   scope: resourceGroup
   params: {
-    name: !empty(webContainerAppName) ? webContainerAppName : '${abbrs.appContainerApps}web-${resourceToken}'
+    name: !empty(webContainerAppName) ? webContainerAppName : toLower('${abbrs.appContainerApps}web-${resourceToken}')
     location: location
     tags: tags
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}web-${resourceToken}'
@@ -390,7 +390,7 @@ module storage 'shared/storage/storage-account.bicep' = {
   name: 'storage'
   scope: storageResourceGroup
   params: {
-    name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
+    name: !empty(storageAccountName) ? storageAccountName : toLower('${abbrs.storageStorageAccounts}${resourceToken}')
     location: storageResourceGroupLocation
     tags: tags
     allowBlobPublicAccess: false
@@ -417,7 +417,7 @@ module cosmosDb 'shared/storage/cosmosdb.bicep' = {
   name: 'cosmosdb'
   scope: resourceGroup
   params: {
-    name: !empty(cosmosDbAccountName) ? cosmosDbAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    name: !empty(cosmosDbAccountName) ? cosmosDbAccountName : toLower('${abbrs.documentDBDatabaseAccounts}${resourceToken}')
     location: location
     tags: tags
   }

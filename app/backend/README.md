@@ -55,7 +55,7 @@ Update the `.env.dev` file with your Azure OpenAI connection details:
 ```env
 # Azure OpenAI Settings
 AZURE_OPENAI_ENDPOINT=https://your-endpoint.openai.azure.com/
-AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-4.1
+AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-5.4
 
 # Azure services (if needed)
 AZURE_DOCUMENT_INTELLIGENCE_SERVICE=your-doc-intel-service

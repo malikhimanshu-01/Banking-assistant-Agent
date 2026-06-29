@@ -18,7 +18,7 @@ Once you have the project available locally, run the following commands if you d
     ```
     
     * This will provision Azure resources and deploy this sample to those resources.
-    * The project has been tested with gpt-4o and gpt-4.1 model which is currently available with several deployment options these regions. The default is global standard. For more info on deployments and updated region availability check [here](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure?pivots=azure-openai&tabs=global-standard-aoai%2Cstandard-chat-completions%2Cglobal-standard#model-summary-table-and-region-availability)
+    * The project is configured for the gpt-5.4 model using the 2026-03-05 API version and GlobalStandard deployment. For more info on deployments and updated region availability check [here](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure?pivots=azure-openai&tabs=global-standard-aoai%2Cstandard-chat-completions%2Cglobal-standard#model-summary-table-and-region-availability)
 
 
 3. After the application has been successfully deployed you will see a web app URL printed to the console.  Click that URL to interact with the application in your browser.  
@@ -86,17 +86,17 @@ azd up
 ```
 
 ## Testing different gpt models, versions and sku.
-The default LLM used in this project is *gpt-4.1* deployed with global standard on Azure AI Foundry.
+The default LLM used in this project is *gpt-5.4* deployed with GlobalStandard on Azure AI Foundry.
 You can test different models and versions by changing the model sections in the [infra/main.parameters.json](infra/main.parameters.json). An example:
 
 ```shell
 "models": {
       "value": [
         {
-          "deploymentName": "gpt-4.1",
-          "name": "gpt-4.1",
+          "deploymentName": "gpt-5.4",
+          "name": "gpt-5.4",
           "format": "OpenAI",
-          "version": "2025-04-14",
+          "version": "2026-03-05",
           "skuName": "GlobalStandard",
           "capacity": 80
         }

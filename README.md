@@ -67,7 +67,7 @@ Chat component is implemented as reusable [React](https://react.fluentui.dev/?pa
 - **Image data extraction** <br/> 
 Images scanning and data extraction with Azure Document Intelligence using [prebuilt-invoice](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept-invoice?view=doc-intel-4.0.0) model. 
  - **Multi-agent supervisor architecture** <br/>
- Use agents-as-tools or hand-off orchestration to implement supervisor agent to understand user intents and delegate tasks to specific domain agents. Agents are using **gpt-4.1** on [Azure AI Foundry](https://azure.microsoft.com/en-us/products/ai-foundry)
+ Use agents-as-tools or hand-off orchestration to implement supervisor agent to understand user intents and delegate tasks to specific domain agents. Agents are using **gpt-5.4** on [Azure AI Foundry](https://azure.microsoft.com/en-us/products/ai-foundry)
  - **Reusing existing business APIs as MCP tools** <br/>
  Business service logic is exposed to agents through MCP using [fastmcp](https://gofastmcp.com/getting-started/welcome) 
  - **Microsoft Agent Framework First** <br/>
